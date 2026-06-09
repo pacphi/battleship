@@ -1,0 +1,12 @@
+{
+  "default": true,
+  "MD013": false,
+  "MD025": false,
+  "MD041": false,
+  "MD040": false,
+  "MD033": {
+    "allowed_elements": ["a"]
+  },
+  "MD034": false,   // bare URLs — common in docs with table cells (e.g., localhost URLs)
+  "MD060": false    // table column style — our tables aren't aligned; Prettier doesn't format tables
+}

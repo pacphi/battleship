@@ -29,6 +29,8 @@
     "deps:update:latest": "pnpm update --latest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "lint:md": "markdownlint-cli2 \"*.{md,markdown}\" \"docs/**/*.{md,markdown}\"",
+    "lint:md:fix": "markdownlint-cli2 --fix \"*.{md,markdown}\" \"docs/**/*.{md,markdown}\"",
     "check": "pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm run test",
     "fix": "pnpm run lint:fix && pnpm run format"
   },
@@ -43,6 +45,7 @@
     "jsdom": "^29.1.1",
     "prettier": "^3.8.3",
     "prettier-plugin-astro": "^0.14.1",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.8",
+    "markdownlint-cli2": "^0.22.1"
   }
 }
