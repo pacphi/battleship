@@ -8,14 +8,25 @@
   },
   "packageManager": "pnpm@11.0.0",
   "scripts": {
+    "preinstall": "npx only-allow pnpm",
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
     "server": "node server/index.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "audit": "pnpm audit",
+    "audit:fix": "pnpm audit --fix",
+    "deps:outdated": "pnpm outdated",
+    "deps:update": "pnpm update",
+    "deps:update:latest": "pnpm update --latest",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm run test",
+    "fix": "pnpm run lint:fix && pnpm run format"
   },
   "dependencies": {
     "astro": "^6.3.1",
@@ -26,6 +37,8 @@
     "eslint": "^10.4.1",
     "globals": "^17.6.0",
     "jsdom": "^29.1.1",
+    "prettier": "^3.8.3",
+    "prettier-plugin-astro": "^0.14.1",
     "vitest": "^4.1.8"
   }
 }
