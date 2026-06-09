@@ -3,8 +3,8 @@ const RTC_CONFIG = {
 };
 
 const SIGNALING_URL = (() => {
-  const host = window.location.hostname;
-  return `ws://${host}:3001`;
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${protocol}//${window.location.host}/signaling`;
 })();
 
 export class WebRTCManager {

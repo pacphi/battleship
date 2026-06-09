@@ -87,122 +87,128 @@ Battleship P2P is a peer-to-peer multiplayer Battleship game built with Astro. T
 
 ## Deployment
 
-The built site is fully static (`dist/` directory). Deploy to:
+The built site is static (`dist/` directory), but multiplayer needs a WebSocket signaling endpoint on the same origin at `/signaling`.
 
-- **GitHub Pages**: Push `dist/` to a `gh-pages` branch or use the GitHub Actions workflow
-- **Netlify/Vercel**: Point at the repo root; build command is `pnpm build`
-- **Cloudflare Pages**: Connect repo; build command `pnpm build`
-- **S3 + CloudFront**: Upload `dist/` contents as static website hosting
+- **LAN/demo**: Run `pnpm build && pnpm server` and tunnel `http://localhost:4321`
+- **Hosted production**: Deploy `dist/` plus a WebSocket-capable signaling service mounted at `/signaling`
 
-See `.github/workflows/release.yml` for automated GitHub Releases with packaged artifacts.
+For static-only hosting, the game page can load, but multiplayer cannot connect unless signaling is also available.
 
 ---
 
 ## LAN Party Tunneling
 
-At a LAN party you need two things reachable from any device on the network:
+At a LAN party you need one public URL. The local server serves both:
 
-1. The static game site (the page you open and click "Create Game" or "Join Game")
-2. The signaling server (`ws://` on port 3001) — relays WebRTC handshake data between peers
+1. The static game site
+2. The WebSocket signaling endpoint at `/signaling`
 
-Because **the game derives the signaling URL from `window.location.hostname`** (it connects to `ws://${hostname}:3001`), any tunneling solution that exposes **both services under the same hostname** works with zero code changes. You don't need separate URLs, proxy headers, or environment variables — just one shareable link.
+The browser derives signaling from the current page origin. If the page is `https://example`, signaling uses `wss://example/signaling`.
 
 ### Method 1: zrok (recommended)
 
-[zrok](https://github.com/openz.zone/zrok) is open-source, free for personal use, and creates stable reverse tunnels under a shared frontend domain.
+[zrok](https://github.com/openziti/zrok) is open-source and provides public sharing through the current `zrok2` CLI.
 
-#### Setup (one person — the host)
+#### Setup
 
 ```bash
-# Install
-brew install openz.zone/zrok          # macOS
-# or: curl -s https://app.zrok.io/installer | sh
+# Install zrok2 locally for this project. The script downloads the versioned
+# GitHub release artifact and verifies checksums.sha256.txt before installing.
+pnpm tunnel:install:zrok
 
-# Register a free account (takes 30 seconds)
-zrok invite accept <invite-code>
+# Enable your zrok environment once with your account token.
+.tools/bin/zrok2 enable <account-token>
 
-# Start a frontend on localhost (optional — lets you watch tunnels)
-zrok frontend public
-
-# Terminal 1 — expose the static game site
-zrok share exposed dist http://localhost:4321
-
-# → Outputs something like: https://<your-shared-id>.zrok.io
-
-# Terminal 2 — expose the signaling server on the SAME hostname
-zrok share exposed server/index.mjs http://localhost:3001 \
-  --address https://<your-shared-id>.zrok.io
+# Build, serve, and open one public tunnel.
+pnpm tunnel:zrok
 ```
 
-Both tunnels now listen under the same `.zrok.io` domain. Share that single URL with everyone — the game page hits `wss://<id>.zrok.io:3001` automatically.
+Share the single public URL printed by zrok.
 
-**Why zrok**: free tier, stable long-lived sessions, open-source, and the `--address` flag lets you pin both tunnels to one hostname.
+#### Uninstall
+
+```bash
+pnpm tunnel:uninstall:zrok
+```
+
+Windows:
+
+```powershell
+.\scripts\tunnel-setup.pwsh install zrok -Scope project
+.\.tools\bin\zrok2.cmd enable <account-token>
+.\scripts\tunnel-setup.pwsh run zrok
+.\scripts\tunnel-setup.pwsh uninstall zrok -Scope project
+```
+
+On Windows ARM64, the installer uses zrok's Windows x64 artifact under Windows-on-ARM compatibility because zrok does not currently publish a Windows ARM64 artifact.
 
 ### Method 2: ngrok
 
-[ngrok](https://ngrok.com) is the quickest way to get a tunnel up — no account needed for basic use. Free tier gives you a random URL that changes each session.
+[ngrok](https://ngrok.com) is widely available and works well with the single-origin server.
 
-#### Quick start (no install)
-
-```bash
-# Terminal 1 — game site
-npx ngrok http 4321
-
-# → Copies a forwarding URL like https://abc1.ngrok-free.app
-
-# Terminal 2 — signaling server (same domain)
-npx ngrok http 3001 --domain abc1.ngrok-free.app
-
-# Or use the single-command multi-port approach:
-ngrok http http://localhost:4321,http://localhost:3001 \
-  --resolver-endpoint dns+https://dns.google/dns-query
-```
-
-**With ngrok CLI installed** (persistent domain):
+#### Setup
 
 ```bash
-brew install ngrok/ngrok/ngrok
-ngrok authtoken <your-token>
+# Install ngrok from https://ngrok.com/download or through the helper where supported.
+scripts/tunnel-setup.sh install ngrok --scope user
 
-# Tunnel both services under one domain
-ngrok http https://localhost:4321 \
-  --hostname tunnel.ngrok-free.app
-ngrok tcp 3001 --region us              # TCP port on same account
+# Add your authtoken once.
+ngrok config add-authtoken <your-token>
+
+# Build, serve, and open one public tunnel.
+pnpm tunnel:ngrok
 ```
 
-Then point the game site to `wss://tunnel.ngrok-free.app:443` for signaling.
+Windows:
 
-**Why ngrok**: instant setup with `npx`, widely available at events, well-documented REST API for managing tunnels.
+```powershell
+.\scripts\tunnel-setup.pwsh install ngrok -Scope user
+ngrok config add-authtoken <your-token>
+.\scripts\tunnel-setup.pwsh run ngrok
+```
 
-### Method 3: localtunnel (lightest option)
-
-[lc](https://github.com/localtunnel/cli) — zero install, just one package global.
+#### Uninstall
 
 ```bash
-npm i -g localtunnel
-
-# Terminal 1 — game site
-lt --port 4321
-# → https://abcd.localtunnel.me
-
-# Terminal 2 — signaling (same hostname via --subdomain)
-lt --port 3001 --subdomain abcd
+scripts/tunnel-setup.sh uninstall ngrok --scope user
 ```
 
-**Caveat**: free localtunnel instances sleep after 2 minutes of inactivity. Use **zrok** for longer LAN events.
+Windows:
 
-### How it works under the hood
+```powershell
+.\scripts\tunnel-setup.pwsh uninstall ngrok -Scope user
+```
+
+### Tool Support
+
+The helper scripts support these zrok release artifacts:
+
+- macOS ARM64
+- Linux x64, ARM64, ARMv7 on Debian, Ubuntu, Fedora, Alpine, SUSE, Arch, and other distros that can run the upstream binary
+- Windows x64
+- Windows ARM64 via x64 compatibility
+
+ngrok installation is delegated to official native installers where possible:
+
+- macOS: Homebrew
+- Debian/Ubuntu: ngrok's official apt repository
+- Linux distros with Snap: snap
+- Windows: winget or Scoop
+
+For Alpine, SUSE, Arch, Fedora without Snap, and other Linux distributions, install ngrok from the official download page and then run `pnpm tunnel:ngrok`. Project-local ngrok installation is intentionally not managed because ngrok does not expose the same release checksum workflow as zrok.
+
+Use `pnpm tunnel:doctor` to check local tool availability.
+
+### How It Works Under the Hood
 
 ```
 Browser (Player A) ──┐
-                      ├──► tunnel URL (game page + signaling ws://:3001)
+                      ├──► tunnel URL
 Browser (Player B) ──┘                   │
-                                  zrok/ngrok/localtunnel
+                                      zrok/ngrok
                                            │
-                              ┌────────────┴────────────┐
-                              │  localhost:4321 (game)  │
-                              │  localhost:3001 (ws)    │
-                              └─────────────────────────┘
+                              http://localhost:4321
+                         static files + /signaling WebSocket
                                          │
                               WebRTC P2P data channel ───► game data
 ```
@@ -213,7 +219,7 @@ The tunnel only handles the **initial handshake** (SDP + ICE candidates). Once W
 
 | Problem                       | Solution                                                                                                 |
 | ----------------------------- | -------------------------------------------------------------------------------------------------------- |
-| "Signaling connection failed" | Make sure **both** the static site and port 3001 are tunneled under the same hostname                    |
+| "Signaling connection failed" | Make sure the tunnel points to the single local server on port 4321                                      |
 | WebRTC handshake hangs        | Check that STUN servers (Google) are reachable; some LANs block `stun.l.google.com:19302`                |
 | Tunnel drops mid-game         | Game continues P2P — just re-tunnel to let new players join. Restart tunnel, refresh page with same code |
-| Firewall blocking port 3001   | Tunneling bypasses local firewall — only matters if you run both services locally behind a host firewall |
+| zrok2 not found               | Run `pnpm tunnel:install:zrok`, or add `.tools/bin` to PATH                                              |

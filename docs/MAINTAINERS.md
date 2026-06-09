@@ -36,9 +36,9 @@ pnpm build
 │       ├── game-flow.js # Round/queue/hybrid mode logic
 │       ├── landing.js   # Landing page interaction
 │       └── styles.css   # Global + landing + game page styles
-├── server/              # Signaling server (standalone Node.js app)
+├── server/              # Single-origin static + WebSocket server
 │   ├── package.json
-│   └── index.mjs        # WebSocket signaling relay
+│   └── index.mjs        # Serves dist/ and WebSocket signaling on /signaling
 ├── docs/                # Documentation
 ├── astro.config.mjs     # Astro config (static output)
 └── package.json         # Root: astro + ws dependencies
@@ -46,32 +46,27 @@ pnpm build
 
 ## Commands
 
-| Command        | Description                                          |
-| -------------- | ---------------------------------------------------- |
-| `pnpm dev`     | Start Astro dev server (<http://localhost:4321>)     |
-| `pnpm build`   | Build static site to `dist/`                         |
-| `pnpm preview` | Preview built site locally                           |
-| `pnpm server`  | Run signaling server (`server/index.mjs`, port 3001) |
+| Command                      | Description                                            |
+| ---------------------------- | ------------------------------------------------------ |
+| `pnpm dev`                   | Start Astro dev server (<http://localhost:4321>)       |
+| `pnpm build`                 | Build static site to `dist/`                           |
+| `pnpm preview`               | Preview built site locally                             |
+| `pnpm server`                | Serve `dist/` and `/signaling` on port 4321            |
+| `pnpm tunnel:install:zrok`   | Install project-local zrok2 with checksum verification |
+| `pnpm tunnel:uninstall:zrok` | Remove project-local zrok2                             |
+| `pnpm tunnel:zrok`           | Build, serve, and open a zrok tunnel                   |
+| `pnpm tunnel:ngrok`          | Build, serve, and open an ngrok tunnel                 |
 
-### Running both simultaneously
-
-```bash
-# Terminal 1 — Signaling server
-pnpm --filter battleship-signaling start
-
-# Terminal 2 — Astro dev server
-pnpm dev
-```
-
-Or from the root:
+### Local production-style run
 
 ```bash
-(node server/index.mjs &) && pnpm dev
+pnpm build
+pnpm server
 ```
 
 ## Architecture Overview
 
-- **Signaling server** (`server/`): WebSocket relay for WebRTC SDP/ICE exchange. Not involved in game state.
+- **Single-origin server** (`server/`): Serves `dist/` and relays WebRTC SDP/ICE over `/signaling`. Not involved in game state.
 - **Client**: Pure HTML/CSS/JS — Astro pages deliver static assets; all game logic runs in the browser via ESM modules over `/scripts/`.
 - **WebRTC**: P2P data channel carries all game messages after handshake.
 - **Game engine**: Server-authoritative model is avoided; both peers maintain independent board state synced via P2P resolution batch messages.
@@ -83,14 +78,14 @@ pnpm install  # ensures pnpm-lock.yaml generated
 pnpm build    # outputs to dist/
 ```
 
-The `dist/` directory contains the complete static site — ready to deploy to any static host (GitHub Pages, Netlify, Cloudflare Pages, S3, etc.).
+The `dist/` directory contains the static site. For multiplayer, serve it with `server/index.mjs` or deploy the static assets with a WebSocket-capable signaling service exposed on the same origin at `/signaling`.
 
 ## Testing
 
 ### Manual testing workflow
 
-1. Start signaling server: `pnpm server`
-2. Start Astro dev: `pnpm dev`
+1. Build the site: `pnpm build`
+2. Start the single-origin server: `pnpm server`
 3. Open two browser tabs at `http://localhost:4321`
 4. Tab 1: Select mode → "Create Game" → share code
 5. Tab 2: Enter code → "Join Game"

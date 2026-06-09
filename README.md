@@ -53,21 +53,41 @@
 # Install dependencies
 pnpm install
 
-# Terminal 1 — start the Astro dev server
+# Start the Astro dev server
 pnpm dev            # &#x1F3B2;&#xFE0F;  http://localhost:4321
+```
 
-# Terminal 2 — start the signaling server (handshake only!)
-pnpm server         # &#x1F50D;  port 3001
+For local multiplayer testing, also start the single-origin production-style server after building:
+
+```bash
+pnpm build
+pnpm server         # &#x1F50D;  http://localhost:4321 with /signaling WebSocket
 ```
 
 Open two browser tabs, create a game in one, join with the code in the other. **Done.** &#x1F389;
 
-### Production Build
+### LAN Tunnels
 
 ```bash
-pnpm build          # &#x1F4E6;  static site → dist/
-serve dist/         # &#x2699;&#xFE0F;  any static host works — Netlify, Vercel, Cloudflare Pages, S3 + CloudFront
-cd server && node index.mjs   # &#x1F50D;  signaling server
+# Install a project-local, checksum-verified zrok2 binary
+pnpm tunnel:install:zrok
+
+# Build, start the local server, and open a zrok tunnel
+pnpm tunnel:zrok
+
+# Or use an existing ngrok install
+pnpm tunnel:ngrok
+
+# Remove the project-local zrok2 install
+pnpm tunnel:uninstall:zrok
+```
+
+Windows users can run the PowerShell helper directly:
+
+```powershell
+.\scripts\tunnel-setup.pwsh install zrok -Scope project
+.\scripts\tunnel-setup.pwsh run zrok
+.\scripts\tunnel-setup.pwsh uninstall zrok -Scope project
 ```
 
 ---
@@ -82,7 +102,7 @@ Browser (Player 1)  <──────── WebRTC P2P ───────�
 ```
 
 - **Game state** lives entirely in each player's browser &#x1F9F0;
-- **Signaling server** handles _only_ the initial WebRTC handshake — it never sees a single move
+- **Signaling server** handles _only_ the initial WebRTC handshake on `/signaling` — it never sees a single move
 - **Rendering** via vanilla HTML5 Canvas with `requestAnimationFrame` loop
 - **Zero dependencies** on UI frameworks — just pure, performant JS
 
@@ -114,7 +134,12 @@ Browser (Player 1)  <──────── WebRTC P2P ───────�
 pnpm dev          # &#x1F3B2;&#xFE0F;  Astro dev server
 pnpm build        # &#x1F4E6;  production bundle
 pnpm preview      # &#x1F440;  local preview of build
-pnpm server       # &#x1F50D;  signaling server
+pnpm server       # &#x1F50D;  static site + /signaling WebSocket
+pnpm tunnel:doctor
+pnpm tunnel:install:zrok
+pnpm tunnel:uninstall:zrok
+pnpm tunnel:zrok
+pnpm tunnel:ngrok
 pnpm test         # &#x1F9EA;  run all tests
 pnpm lint         # &#x1F9E1;  ESLint
 pnpm lint:md      # &#x1F4D6;  Markdown lint (markdownlint-cli2)
@@ -126,14 +151,14 @@ pnpm check        # &#x2705  typecheck + lint + format + test
 
 ## &#x1F3AF; Ship It
 
-Deploy the static `dist/` folder to **any** hosting provider:
+Deploy the static `dist/` folder to **any** static hosting provider and run `server/index.mjs` anywhere that can serve WebSockets:
 
 - &#x1F436; **GitHub Pages** — use the included CI workflow
 - &#x2699;&#xFE0F; **Netlify / Vercel** — connect repo, build cmd: `pnpm build`
 - &#x2601;&#xFE0F; **Cloudflare Pages** — same build command
 - &#x2744;&#xFE0F; **S3 + CloudFront** — upload `dist/` as a static website
 
-The signaling server runs independently on port 3001.
+For LAN parties and demos, `pnpm server` serves both the static build and signaling on one port.
 
 ---
 
