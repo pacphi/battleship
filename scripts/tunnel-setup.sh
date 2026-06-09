@@ -36,6 +36,8 @@ Recommended:
 Notes:
   zrok installs are managed by this repo and verified with upstream SHA-256 checksums.
   ngrok installs use official native package-manager paths where available.
+  Pass --yes (or set TUNNEL_ASSUME_YES=1) to auto-confirm package-manager prompts
+  in non-interactive contexts such as CI.
 USAGE
 }
 
@@ -43,6 +45,10 @@ has_cmd() { command -v "$1" >/dev/null 2>&1; }
 
 confirm() {
   local prompt="$1" ans
+  if [[ "${TUNNEL_ASSUME_YES:-0}" == "1" || "${ASSUME_YES:-0}" == "1" ]]; then
+    info "$prompt (auto-confirmed)"
+    return 0
+  fi
   printf '%s [y/N] ' "$prompt"
   read -r ans
   case "$ans" in
@@ -359,6 +365,7 @@ while [[ $# -gt 0 ]]; do
     --scope) SCOPE="${2:-}"; shift 2 ;;
     --version) ZROK_VERSION="${2:-}"; shift 2 ;;
     --port) PORT="${2:-}"; shift 2 ;;
+    -y|--yes) ASSUME_YES=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) err "Unknown argument: $1"; usage; exit 1 ;;
   esac
