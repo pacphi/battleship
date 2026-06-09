@@ -9,7 +9,6 @@ const STALE_TIMEOUT = 60_000;
 const rooms = new Map();
 
 function generateCode() {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
   let code;
   do {
     code = randomBytes(CODE_LENGTH).toString('hex').slice(0, CODE_LENGTH);

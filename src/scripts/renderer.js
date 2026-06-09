@@ -1,4 +1,4 @@
-import { CELL, GRID_SIZE } from './board.js';
+import { GRID_SIZE } from './board.js';
 
 const COLORS = {
   bg: '#0a1628',

@@ -1,4 +1,4 @@
-import { Board, GRID_SIZE, SHIP_TYPES } from './board.js';
+import { Board, GRID_SIZE } from './board.js';
 
 export const PHASE = {
   WAITING: 'waiting',
@@ -96,7 +96,7 @@ export class Game {
   }
 
   _countShips() {
-    this.shipsRemaining[this.playerId] = this.ownBoard.ships.filter((s) => s.sunk).length;
+    this.shipsRemaining[this.playerId] = this.ownBoard.ships.filter((s) => !s.sunk).length;
   }
 
   addMessage(text) {

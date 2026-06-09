@@ -101,6 +101,10 @@ export class Board {
   }
 
   fire(row, col) {
+    if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) {
+      return { result: 'miss', ship: null, row, col };
+    }
+
     const key = `${row},${col}`;
     if (this.shots.has(key)) return { result: 'already-shot', row, col };
 
@@ -140,6 +144,9 @@ export class Board {
         hits: s.hits,
       })),
       shotResults: this.shotResults,
+      torpedoShifts: this.ships
+        .filter((s) => s.canShift)
+        .map((s) => ({ id: s.id, row: s.row, col: s.col, vertical: s.vertical })),
     };
   }
 }
