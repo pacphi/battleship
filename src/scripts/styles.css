@@ -1,0 +1,408 @@
+/* === Global Reset === */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #0a1628;
+  color: #ecf0f1;
+  font-family: 'Courier New', monospace;
+  overflow: hidden;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* === Status Bar === */
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: #0d2137;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  font-size: 14px;
+  min-height: 40px;
+}
+
+.status-bar span {
+  margin: 0 8px;
+}
+
+.game-code {
+  background: #1a3a5c;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+.mode-label {
+  color: #3498db;
+}
+
+.timer {
+  color: #f39c12;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.message-area {
+  color: #95a5a6;
+  font-size: 12px;
+}
+
+/* === Game Board === */
+.game-board {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+  padding: 20px;
+}
+
+.board-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.board-container h3 {
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #95a5a6;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+canvas {
+  border: 2px solid #1a3a5c;
+  border-radius: 4px;
+  cursor: crosshair;
+  max-width: 100%;
+  max-height: calc(100vh - 140px);
+}
+
+/* === Overlay === */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10,22,40,0.95);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+
+.overlay-content {
+  background: #1a3a5c;
+  padding: 40px;
+  border-radius: 8px;
+  text-align: center;
+  min-width: 300px;
+}
+
+.overlay-content h2 {
+  font-size: 28px;
+  margin-bottom: 16px;
+}
+
+.overlay-content p {
+  margin-bottom: 24px;
+  color: #95a5a6;
+}
+
+.overlay-content button {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 10px 32px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 16px;
+}
+
+.overlay-content button:hover {
+  background: #2980b9;
+}
+
+/* === Waiting Screen === */
+.waiting-screen {
+  position: fixed;
+  inset: 0;
+  background: rgba(10,22,40,0.95);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 50;
+}
+
+.waiting-content {
+  text-align: center;
+}
+
+.waiting-content h2 {
+  margin-bottom: 16px;
+  font-size: 24px;
+}
+
+.waiting-content p {
+  font-size: 32px;
+  letter-spacing: 8px;
+  background: #1a3a5c;
+  padding: 12px 24px;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+/* === Landing Page Styles === */
+.landing {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.landing-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.landing-header h1 {
+  font-size: 48px;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: #95a5a6;
+  font-size: 16px;
+  letter-spacing: 4px;
+}
+
+.section {
+  margin-bottom: 32px;
+}
+
+.section h2 {
+  margin-bottom: 16px;
+  font-size: 20px;
+  color: #3498db;
+}
+
+.mode-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.mode-card {
+  background: #1a3a5c;
+  padding: 20px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.mode-card:hover {
+  background: #1e4470;
+}
+
+.mode-card.selected {
+  border-color: #3498db;
+  background: #1e4470;
+}
+
+.mode-card h3 {
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+
+.mode-card p {
+  color: #95a5a6;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.setup-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.btn {
+  padding: 12px 32px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.btn-primary {
+  background: #3498db;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #2980b9;
+}
+
+.btn-secondary {
+  background: #2c5f8a;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #3480b8;
+}
+
+.divider {
+  color: #95a5a6;
+}
+
+.join-form {
+  display: flex;
+  gap: 8px;
+}
+
+.join-form input {
+  padding: 10px 16px;
+  background: #1a3a5c;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+  color: white;
+  font-family: inherit;
+  font-size: 16px;
+  letter-spacing: 4px;
+  text-align: center;
+  width: 160px;
+}
+
+.join-form input:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+.code-display {
+  text-align: center;
+  margin-top: 24px;
+}
+
+.code-display p {
+  margin-bottom: 8px;
+  color: #95a5a6;
+}
+
+.code {
+  font-size: 36px;
+  letter-spacing: 12px;
+  background: #1a3a5c;
+  padding: 12px 24px;
+  border-radius: 8px;
+  display: inline-block;
+  font-weight: bold;
+}
+
+.rules {
+  margin-top: 32px;
+}
+
+.rules summary {
+  cursor: pointer;
+  font-size: 16px;
+  color: #3498db;
+}
+
+.rules-content {
+  margin-top: 16px;
+  padding: 16px;
+  background: #0d2137;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.rules-content h3 {
+  margin: 12px 0 4px;
+  color: #3498db;
+}
+
+.rules-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0;
+}
+
+.rules-content th, .rules-content td {
+  padding: 6px 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.rules-content th {
+  color: #3498db;
+}
+
+/* === Loading Spinner === */
+.loading {
+  position: fixed;
+  inset: 0;
+  background: rgba(10,22,40,0.95);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(52,152,219,0.3);
+  border-top-color: #3498db;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* === Visual Polish Animations (Task 9) === */
+
+/* Hit shake animation */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+.shake {
+  animation: shake 0.3s ease;
+}
+
+/* Timer countdown pulse */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.timer.urgent {
+  color: #e74c3c;
+  animation: pulse 0.5s ease infinite;
+}
+
+/* Board hover glow */
+.board-container:hover canvas {
+  border-color: #3498db;
+  box-shadow: 0 0 10px rgba(52,152,219,0.3);
+}
