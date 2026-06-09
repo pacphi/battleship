@@ -155,7 +155,7 @@ install_zrok() {
   download "$archive_url" "$archive"
   download "$checksum_url" "$checksums"
 
-  expected="$(awk -v asset="$asset" '$2 == asset {print $1}' "$checksums")"
+  expected="$(awk -v asset="$asset" '{ sub(/^\.\//, "", $2) } $2 == asset {print $1}' "$checksums")"
   if [[ -z "$expected" ]]; then
     err "Checksum file did not contain $asset"
     exit 1
