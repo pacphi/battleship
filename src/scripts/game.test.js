@@ -96,7 +96,17 @@ describe('Game', () => {
       const game = new Game(1);
       const syncData = {
         ships: [
-          { id: 'test-ship', row: 0, col: 0, vertical: false, size: 3, sunk: false, hidden: false, name: 'Test Ship', symbol: 'T' },
+          {
+            id: 'test-ship',
+            row: 0,
+            col: 0,
+            vertical: false,
+            size: 3,
+            sunk: false,
+            hidden: false,
+            name: 'Test Ship',
+            symbol: 'T',
+          },
         ],
         shotResults: {},
       };
@@ -194,7 +204,10 @@ describe('Game', () => {
     it('sets phase to FINISHED and winner when all ships sunk', () => {
       const game = new Game(1);
       game.setup();
-      game.ownBoard.ships.forEach(s => { s.sunk = true; s.hits = s.size; });
+      game.ownBoard.ships.forEach((s) => {
+        s.sunk = true;
+        s.hits = s.size;
+      });
       game.phase = PHASE.PLAYING;
       game._countShips();
       // Note: _countShips only counts own ships, opponent is unknown via this method

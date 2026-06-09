@@ -2,10 +2,10 @@
 
 ## Prerequisites
 
-| Tool | Minimum Version | Notes |
-|------|-----------------|-------|
+| Tool    | Minimum Version      | Notes                                                                |
+| ------- | -------------------- | -------------------------------------------------------------------- |
 | Node.js | ≥ 26 (even-numbered) | Astro v6 drops support for Node < 22.12.0; this project targets ≥ 26 |
-| pnpm | ≥ 11 | Must be installed on PATH (or use `pnpm/action-setup` in CI) |
+| pnpm    | ≥ 11                 | Must be installed on PATH (or use `pnpm/action-setup` in CI)         |
 
 ### Setup
 
@@ -46,12 +46,12 @@ pnpm build
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Start Astro dev server (http://localhost:4321) |
-| `pnpm build` | Build static site to `dist/` |
-| `pnpm preview` | Preview built site locally |
-| `pnpm server` | Run signaling server (`server/index.mjs`, port 3001) |
+| Command        | Description                                          |
+| -------------- | ---------------------------------------------------- |
+| `pnpm dev`     | Start Astro dev server (http://localhost:4321)       |
+| `pnpm build`   | Build static site to `dist/`                         |
+| `pnpm preview` | Preview built site locally                           |
+| `pnpm server`  | Run signaling server (`server/index.mjs`, port 3001) |
 
 ### Running both simultaneously
 

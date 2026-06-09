@@ -34,9 +34,17 @@ export class Game {
     this.enemyBoard.shotResults = state.shotResults || {};
     this.enemyBoard.shots = new Set(Object.keys(state.shotResults || {}));
     this.enemyBoard.ships = state.ships.map((s) => ({
-      id: s.id, row: s.row, col: s.col, vertical: s.vertical,
-      sunk: s.sunk, hidden: s.hidden, name: s.name, symbol: s.symbol,
-      size: s.size, hits: s.hits, canShift: false,
+      id: s.id,
+      row: s.row,
+      col: s.col,
+      vertical: s.vertical,
+      sunk: s.sunk,
+      hidden: s.hidden,
+      name: s.name,
+      symbol: s.symbol,
+      size: s.size,
+      hits: s.hits,
+      canShift: false,
     }));
   }
 

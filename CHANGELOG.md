@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+
 - pnpm packageManager pinning (≥ 11)
 - Node.js ≥ 26 engine requirement
 - Corepack-based toolchain management via `.tool-versions`
@@ -14,6 +15,7 @@ All notable changes to this project will be documented in this file.
 - User guide and release documentation (`docs/USER-GUIDE.md`)
 
 ### Changed
+
 - Migrated from npm to pnpm (see `docs/MAINTAINERS.md` for local setup)
 - Added `.gitignore` to exclude build artifacts, dependencies, and IDE files
 
@@ -22,6 +24,7 @@ All notable changes to this project will be documented in this file.
 ## [v0.1.0] — Initial Release
 
 ### Added
+
 - Astro static site with two pages: landing + game
 - WebSocket signaling server (SDP/ICE relay, room management)
 - WebRTC P2P connection manager

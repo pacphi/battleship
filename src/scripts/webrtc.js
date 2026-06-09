@@ -1,8 +1,5 @@
 const RTC_CONFIG = {
-  iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-  ],
+  iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }],
 };
 
 const SIGNALING_URL = (() => {
@@ -105,12 +102,14 @@ export class WebRTCManager {
 
     this.pc.onicecandidate = (e) => {
       if (e.candidate && this.ws && this.ws.readyState === WebSocket.OPEN) {
-        this.ws.send(JSON.stringify({
-          type: 'relay',
-          code: this.code,
-          data: JSON.stringify({ type: 'ice', candidate: e.candidate }),
-          to: isHost ? 'guest' : 'host',
-        }));
+        this.ws.send(
+          JSON.stringify({
+            type: 'relay',
+            code: this.code,
+            data: JSON.stringify({ type: 'ice', candidate: e.candidate }),
+            to: isHost ? 'guest' : 'host',
+          })
+        );
       }
     };
 
@@ -127,16 +126,21 @@ export class WebRTCManager {
       this.dc = this.pc.createDataChannel('game');
       this._setupDataChannel();
 
-      this.pc.createOffer().then((offer) => {
-        return this.pc.setLocalDescription(offer);
-      }).then(() => {
-        this.ws.send(JSON.stringify({
-          type: 'relay',
-          code: this.code,
-          data: JSON.stringify({ type: 'sdp', sdp: this.pc.localDescription }),
-          to: 'guest',
-        }));
-      });
+      this.pc
+        .createOffer()
+        .then((offer) => {
+          return this.pc.setLocalDescription(offer);
+        })
+        .then(() => {
+          this.ws.send(
+            JSON.stringify({
+              type: 'relay',
+              code: this.code,
+              data: JSON.stringify({ type: 'sdp', sdp: this.pc.localDescription }),
+              to: 'guest',
+            })
+          );
+        });
     }
 
     this.pc.ondatachannel = (e) => {
@@ -152,12 +156,14 @@ export class WebRTCManager {
         if (!this.pc.localDescription) {
           const answer = await this.pc.createAnswer();
           await this.pc.setLocalDescription(answer);
-          this.ws.send(JSON.stringify({
-            type: 'relay',
-            code: this.code,
-            data: JSON.stringify({ type: 'sdp', sdp: this.pc.localDescription }),
-            to: 'host',
-          }));
+          this.ws.send(
+            JSON.stringify({
+              type: 'relay',
+              code: this.code,
+              data: JSON.stringify({ type: 'sdp', sdp: this.pc.localDescription }),
+              to: 'host',
+            })
+          );
         }
         break;
 

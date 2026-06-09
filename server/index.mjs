@@ -35,7 +35,11 @@ setInterval(() => {
 wss.on('connection', (ws) => {
   ws.on('message', (data) => {
     let msg;
-    try { msg = JSON.parse(data.toString()); } catch { return; }
+    try {
+      msg = JSON.parse(data.toString());
+    } catch {
+      return;
+    }
 
     switch (msg.type) {
       case 'create-game': {
@@ -45,19 +49,23 @@ wss.on('connection', (ws) => {
 
         room.joinTimeout = setTimeout(() => {
           if (!room.guestWs) {
-            room.hostWs.send(JSON.stringify({
-              type: 'game-expired',
-              code,
-            }));
+            room.hostWs.send(
+              JSON.stringify({
+                type: 'game-expired',
+                code,
+              })
+            );
             rooms.delete(code);
           }
         }, 30_000);
 
-        ws.send(JSON.stringify({
-          type: 'game-created',
-          code,
-          role: 'host',
-        }));
+        ws.send(
+          JSON.stringify({
+            type: 'game-created',
+            code,
+            role: 'host',
+          })
+        );
         break;
       }
 
@@ -77,16 +85,20 @@ wss.on('connection', (ws) => {
         room.guestWs = ws;
         room.lastActivity = Date.now();
 
-        room.hostWs.send(JSON.stringify({
-          type: 'guest-joined',
-          code,
-        }));
+        room.hostWs.send(
+          JSON.stringify({
+            type: 'guest-joined',
+            code,
+          })
+        );
 
-        ws.send(JSON.stringify({
-          type: 'game-joined',
-          role: 'guest',
-          code,
-        }));
+        ws.send(
+          JSON.stringify({
+            type: 'game-joined',
+            role: 'guest',
+            code,
+          })
+        );
         break;
       }
 

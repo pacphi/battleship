@@ -17,20 +17,20 @@ Player 1 Browser (Astro pages)  ←─ WebRTC P2P data channel ─→  Player 2 
          ▲                                                              ▲
          │ signaling (SDP exchange)                                   │ signaling (SDP exchange)
          │                                                            │
-    ┌──────────────┐                                                 
+    ┌──────────────┐
     │ Signaling Svr │ (Node.js / ws, port 3001, used only for handshake)
     └──────────────┘
 ```
 
 ### Technology Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Static pages | Astro (output: static) |
-| Game rendering | HTML5 Canvas (vanilla JS) |
-| Game networking | WebRTC DataChannel (P2P) |
-| Signaling | Node.js `ws` WebSocket server |
-| Styling | CSS (no framework) |
+| Layer           | Technology                    |
+| --------------- | ----------------------------- |
+| Static pages    | Astro (output: static)        |
+| Game rendering  | HTML5 Canvas (vanilla JS)     |
+| Game networking | WebRTC DataChannel (P2P)      |
+| Signaling       | Node.js `ws` WebSocket server |
+| Styling         | CSS (no framework)            |
 
 ### Key Design Decisions
 
@@ -47,14 +47,14 @@ Player 1 Browser (Astro pages)  ←─ WebRTC P2P data channel ─→  Player 2 
 
 ### Ships (randomly placed, no manual phase)
 
-| Ship | Size | Special Ability |
-|------|------|-----------------|
-| Carrier | 5 | Standard |
-| Battleship | 4 | Standard |
-| Heavy Cruiser | 3 | Standard |
-| Light Cruiser | 3 | Standard |
-| Submarine | 2 | Hidden until first hit — shows as a hit with no ship outline until all cells are revealed |
-| Torpedo Boat | 2 | After an opponent fires a miss, shifts to an adjacent 2-cell position (if valid and unoccupied). Announced to opponent |
+| Ship          | Size | Special Ability                                                                                                        |
+| ------------- | ---- | ---------------------------------------------------------------------------------------------------------------------- |
+| Carrier       | 5    | Standard                                                                                                               |
+| Battleship    | 4    | Standard                                                                                                               |
+| Heavy Cruiser | 3    | Standard                                                                                                               |
+| Light Cruiser | 3    | Standard                                                                                                               |
+| Submarine     | 2    | Hidden until first hit — shows as a hit with no ship outline until all cells are revealed                              |
+| Torpedo Boat  | 2    | After an opponent fires a miss, shifts to an adjacent 2-cell position (if valid and unoccupied). Announced to opponent |
 
 ### Win Condition
 
@@ -135,6 +135,7 @@ Players select one mode on the landing page before connecting. Host picks, guest
 ### 4. Signaling Server (`server/index.mjs`)
 
 Minimal relay server. Handles only:
+
 - `create-game`: Generates unique 6-char code (from `a-z0-9` alphabet, ~300M combinations), assigns to a host connection
 - `join-game`: Matches a guest to a host with the given code
 - `relay`: Forwards SDP offer/answer and ICE candidates between peers
@@ -185,14 +186,14 @@ Minimal relay server. Handles only:
 
 ## Error Handling
 
-| Scenario | Handling |
-|----------|----------|
-| P2P connection lost | Detect via `iceconnectionstatechange`. Show overlay. Save state locally for potential resume. |
-| One player disconnects | Other sees "Opponent disconnected" message. Game state preserved locally. |
-| Signaling server down | Error on create/join. No fallback. |
-| Invalid move (duplicate, out of bounds) | Silently ignored client-side. No server round-trip. |
-| Torpedo boat shift blocked | Boat stays in place. Message: "Torpedo Boat could not shift!" |
-| Submarine hit | Standard hit. Ship remains hidden until sunk (all cells revealed). |
+| Scenario                                | Handling                                                                                      |
+| --------------------------------------- | --------------------------------------------------------------------------------------------- |
+| P2P connection lost                     | Detect via `iceconnectionstatechange`. Show overlay. Save state locally for potential resume. |
+| One player disconnects                  | Other sees "Opponent disconnected" message. Game state preserved locally.                     |
+| Signaling server down                   | Error on create/join. No fallback.                                                            |
+| Invalid move (duplicate, out of bounds) | Silently ignored client-side. No server round-trip.                                           |
+| Torpedo boat shift blocked              | Boat stays in place. Message: "Torpedo Boat could not shift!"                                 |
+| Submarine hit                           | Standard hit. Ship remains hidden until sunk (all cells revealed).                            |
 
 ## Visual Design
 

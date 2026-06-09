@@ -1,10 +1,10 @@
 export const GRID_SIZE = 12;
 export const SHIP_TYPES = [
-  { id: 'carrier',   name: 'Carrier',   size: 5, symbol: 'C' },
+  { id: 'carrier', name: 'Carrier', size: 5, symbol: 'C' },
   { id: 'battleship', name: 'Battleship', size: 4, symbol: 'B' },
   { id: 'heavy-cruiser', name: 'Heavy Cruiser', size: 3, symbol: 'H' },
   { id: 'light-cruiser', name: 'Light Cruiser', size: 3, symbol: 'L' },
-  { id: 'submarine',   name: 'Submarine', size: 2, symbol: 'S', hiddenUntilSunk: true },
+  { id: 'submarine', name: 'Submarine', size: 2, symbol: 'S', hiddenUntilSunk: true },
   { id: 'torpedo-boat', name: 'Torpedo Boat', size: 2, symbol: 'T', canShift: true },
 ];
 
@@ -49,9 +49,16 @@ export class Ship {
   }
 
   canShiftTo(newRow, newCol, newVertical, occupied) {
-    const candidate = new Ship({ name: 'torpedo', size: 2, symbol: 'T', canShift: true }, -1, newRow, newCol, newVertical);
+    const candidate = new Ship(
+      { name: 'torpedo', size: 2, symbol: 'T', canShift: true },
+      -1,
+      newRow,
+      newCol,
+      newVertical
+    );
     const cells = candidate.getCells();
-    if (cells.some((c) => c.row < 0 || c.row >= GRID_SIZE || c.col < 0 || c.col >= GRID_SIZE)) return false;
+    if (cells.some((c) => c.row < 0 || c.row >= GRID_SIZE || c.col < 0 || c.col >= GRID_SIZE))
+      return false;
     for (const c of cells) {
       if (occupied.has(`${c.row},${c.col}`)) return false;
     }

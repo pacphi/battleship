@@ -1,238 +1,239 @@
 ---
 // Game page
 ---
-<!DOCTYPE html>
+
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Battleship — Battle</title>
-  <link rel="stylesheet" href="/scripts/styles.css" />
-</head>
-<body>
-  <div id="app">
-    <div id="status-bar" class="status-bar">
-      <span id="connection-status">Connecting...</span>
-      <span id="game-code" class="game-code"></span>
-      <span id="mode-label" class="mode-label"></span>
-      <span id="timer" class="timer"></span>
-      <span id="message-area" class="message-area"></span>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Battleship — Battle</title>
+    <link rel="stylesheet" href="/scripts/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="status-bar" class="status-bar">
+        <span id="connection-status">Connecting...</span>
+        <span id="game-code" class="game-code"></span>
+        <span id="mode-label" class="mode-label"></span>
+        <span id="timer" class="timer"></span>
+        <span id="message-area" class="message-area"></span>
+      </div>
+
+      <div id="game-board" class="game-board">
+        <div class="board-container">
+          <h3>Your Fleet</h3>
+          <canvas id="own-board"></canvas>
+        </div>
+        <div class="board-container">
+          <h3>Enemy Waters</h3>
+          <canvas id="enemy-board"></canvas>
+        </div>
+      </div>
+
+      <div id="overlay" class="overlay" style="display: none;">
+        <div class="overlay-content">
+          <h2 id="overlay-title"></h2>
+          <p id="overlay-text"></p>
+          <button id="overlay-btn">OK</button>
+        </div>
+      </div>
+
+      <div id="waiting-screen" class="waiting-screen">
+        <div class="waiting-content">
+          <h2>Waiting for opponent...</h2>
+          <p id="waiting-code"></p>
+        </div>
+      </div>
     </div>
 
-    <div id="game-board" class="game-board">
-      <div class="board-container">
-        <h3>Your Fleet</h3>
-        <canvas id="own-board"></canvas>
-      </div>
-      <div class="board-container">
-        <h3>Enemy Waters</h3>
-        <canvas id="enemy-board"></canvas>
-      </div>
-    </div>
+    <script type="module">
+      import { WebRTCManager } from '/scripts/webrtc.js';
+      import { Game, PHASE } from '/scripts/game.js';
+      import { Renderer } from '/scripts/renderer.js';
+      import { GameFlow } from '/scripts/game-flow.js';
 
-    <div id="overlay" class="overlay" style="display: none;">
-      <div class="overlay-content">
-        <h2 id="overlay-title"></h2>
-        <p id="overlay-text"></p>
-        <button id="overlay-btn">OK</button>
-      </div>
-    </div>
+      const ownCanvas = document.getElementById('own-board');
+      const enemyCanvas = document.getElementById('enemy-board');
+      const statusBar = document.getElementById('status-bar');
+      const connStatus = document.getElementById('connection-status');
+      const gameCodeEl = document.getElementById('game-code');
+      const timerEl = document.getElementById('timer');
+      const messageArea = document.getElementById('message-area');
+      const overlay = document.getElementById('overlay');
+      const overlayTitle = document.getElementById('overlay-title');
+      const overlayText = document.getElementById('overlay-text');
+      const overlayBtn = document.getElementById('overlay-btn');
+      const waitingScreen = document.getElementById('waiting-screen');
+      const waitingCode = document.getElementById('waiting-code');
 
-    <div id="waiting-screen" class="waiting-screen">
-      <div class="waiting-content">
-        <h2>Waiting for opponent...</h2>
-        <p id="waiting-code"></p>
-      </div>
-    </div>
-  </div>
+      // Initialize renderers
+      const renderer1 = new Renderer(ownCanvas, { showShips: true });
+      const renderer2 = new Renderer(enemyCanvas, { showShips: false });
+      renderer1.setSize();
+      renderer2.setSize();
 
-  <script type="module">
-    import { WebRTCManager } from '/scripts/webrtc.js';
-    import { Game, PHASE } from '/scripts/game.js';
-    import { Renderer } from '/scripts/renderer.js';
-    import { GameFlow } from '/scripts/game-flow.js';
+      // Initialize game
+      const urlParams = new URLSearchParams(window.location.search);
+      const playerId = urlParams.get('player') === '1' ? 1 : 2;
+      const game = new Game(playerId);
+      const webrtc = new WebRTCManager();
 
-    const ownCanvas = document.getElementById('own-board');
-    const enemyCanvas = document.getElementById('enemy-board');
-    const statusBar = document.getElementById('status-bar');
-    const connStatus = document.getElementById('connection-status');
-    const gameCodeEl = document.getElementById('game-code');
-    const timerEl = document.getElementById('timer');
-    const messageArea = document.getElementById('message-area');
-    const overlay = document.getElementById('overlay');
-    const overlayTitle = document.getElementById('overlay-title');
-    const overlayText = document.getElementById('overlay-text');
-    const overlayBtn = document.getElementById('overlay-btn');
-    const waitingScreen = document.getElementById('waiting-screen');
-    const waitingCode = document.getElementById('waiting-code');
+      // State display
+      let gameMode = 'round';
 
-    // Initialize renderers
-    const renderer1 = new Renderer(ownCanvas, { showShips: true });
-    const renderer2 = new Renderer(enemyCanvas, { showShips: false });
-    renderer1.setSize();
-    renderer2.setSize();
-
-    // Initialize game
-    const urlParams = new URLSearchParams(window.location.search);
-    const playerId = urlParams.get('player') === '1' ? 1 : 2;
-    const game = new Game(playerId);
-    const webrtc = new WebRTCManager();
-
-    // State display
-    let gameMode = 'round';
-
-    webrtc.onStateChange = (state, data) => {
-      switch (state) {
-        case 'waiting':
-          waitingScreen.style.display = 'flex';
-          waitingCode.textContent = `Share this code: ${data}`;
-          break;
-        case 'signaling':
-          connStatus.textContent = 'Establishing P2P connection...';
-          break;
-        case 'connected':
-          waitingScreen.style.display = 'none';
-          connStatus.textContent = `Connected (${playerId === 1 ? 'Host' : 'Guest'})`;
-          game.phase = PHASE.CONNECTED;
-          game.setup();
-          // Send own fleet to opponent
-          webrtc.send({
-            type: 'fleet-ready',
-            state: game.ownBoard.toSyncData(),
-          });
-          break;
-        case 'p2p-lost':
-          connStatus.textContent = 'P2P connection lost!';
-          connStatus.style.color = '#e74c3c';
-          // Attempt ICE reconnect
-          if (webrtc.pc) {
-            webrtc.pc.oniceconnectionstatechange = () => {
-              if (webrtc.pc.iceConnectionState === 'connected') {
-                connStatus.textContent = 'P2P restored';
-                connStatus.style.color = '#2ecc71';
-              }
-            };
-          }
-          break;
-        case 'disconnected':
-          connStatus.textContent = 'Disconnected';
-          break;
-      }
-    };
-
-    // Initialize game flow
-    const gameFlow = new GameFlow(game, webrtc);
-
-    webrtc.onMessage = (msg) => {
-      switch (msg.type) {
-        case 'fleet-ready':
-          game.receiveOpponentState(msg.state);
-          if (game.phase === PHASE.CONNECTED) {
-            game.phase = PHASE.PLAYING;
-            // Start the selected game flow mode
-            const mode = urlParams.get('mode') || 'round';
-            gameFlow.start(mode);
-          }
-          break;
-
-        case 'target':
-          // Opponent's target — use game flow mode logic
-          if (game.phase === PHASE.PLAYING) {
-            gameFlow.receiveOpponentTarget(msg.row, msg.col);
-          }
-          break;
-
-        case 'resolution':
-          game.resolveTurns(msg.turns);
-          // Process opponent's shots on our board
-          for (const t of msg.turns.filter(t => t.player !== playerId)) {
-            const result = game.ownBoard.fire(t.row, t.col);
-            if (result.result === 'sink') {
-              game.addMessage(`Your ${result.ship.name} was sunk!`);
+      webrtc.onStateChange = (state, data) => {
+        switch (state) {
+          case 'waiting':
+            waitingScreen.style.display = 'flex';
+            waitingCode.textContent = `Share this code: ${data}`;
+            break;
+          case 'signaling':
+            connStatus.textContent = 'Establishing P2P connection...';
+            break;
+          case 'connected':
+            waitingScreen.style.display = 'none';
+            connStatus.textContent = `Connected (${playerId === 1 ? 'Host' : 'Guest'})`;
+            game.phase = PHASE.CONNECTED;
+            game.setup();
+            // Send own fleet to opponent
+            webrtc.send({
+              type: 'fleet-ready',
+              state: game.ownBoard.toSyncData(),
+            });
+            break;
+          case 'p2p-lost':
+            connStatus.textContent = 'P2P connection lost!';
+            connStatus.style.color = '#e74c3c';
+            // Attempt ICE reconnect
+            if (webrtc.pc) {
+              webrtc.pc.oniceconnectionstatechange = () => {
+                if (webrtc.pc.iceConnectionState === 'connected') {
+                  connStatus.textContent = 'P2P restored';
+                  connStatus.style.color = '#2ecc71';
+                }
+              };
             }
-          }
-          break;
+            break;
+          case 'disconnected':
+            connStatus.textContent = 'Disconnected';
+            break;
+        }
+      };
 
-        case 'game-over':
-          game.phase = PHASE.FINISHED;
-          game.winner = msg.winner;
-          showOverlay(
-            msg.winner === playerId ? 'Victory!' : 'Defeat!',
-            msg.winner === playerId
-              ? 'You sunk the enemy fleet!'
-              : 'Your fleet was sunk.',
-            'Play Again'
-          );
-          break;
+      // Initialize game flow
+      const gameFlow = new GameFlow(game, webrtc);
 
-        case 'opponent-disconnected':
-          showOverlay('Opponent Disconnected', 'Your opponent left the game.', 'OK');
-          break;
+      webrtc.onMessage = (msg) => {
+        switch (msg.type) {
+          case 'fleet-ready':
+            game.receiveOpponentState(msg.state);
+            if (game.phase === PHASE.CONNECTED) {
+              game.phase = PHASE.PLAYING;
+              // Start the selected game flow mode
+              const mode = urlParams.get('mode') || 'round';
+              gameFlow.start(mode);
+            }
+            break;
 
-        case 'mode-select':
-          gameMode = msg.mode;
-          document.getElementById('mode-label').textContent = `Mode: ${gameMode}`;
-          break;
+          case 'target':
+            // Opponent's target — use game flow mode logic
+            if (game.phase === PHASE.PLAYING) {
+              gameFlow.receiveOpponentTarget(msg.row, msg.col);
+            }
+            break;
 
-        case 'torpedo-shift':
-          game.addMessage(`Torpedo Boat shifted from (${String.fromCharCode(65 + msg.from[0][0])}${msg.from[0][1] + 1}) to (${String.fromCharCode(65 + msg.to[0][0])}${msg.to[0][1] + 1})!`);
-          break;
+          case 'resolution':
+            game.resolveTurns(msg.turns);
+            // Process opponent's shots on our board
+            for (const t of msg.turns.filter((t) => t.player !== playerId)) {
+              const result = game.ownBoard.fire(t.row, t.col);
+              if (result.result === 'sink') {
+                game.addMessage(`Your ${result.ship.name} was sunk!`);
+              }
+            }
+            break;
 
-        case 'sub-reveal':
-          game.addMessage('Submarine revealed!');
-          break;
+          case 'game-over':
+            game.phase = PHASE.FINISHED;
+            game.winner = msg.winner;
+            showOverlay(
+              msg.winner === playerId ? 'Victory!' : 'Defeat!',
+              msg.winner === playerId ? 'You sunk the enemy fleet!' : 'Your fleet was sunk.',
+              'Play Again'
+            );
+            break;
+
+          case 'opponent-disconnected':
+            showOverlay('Opponent Disconnected', 'Your opponent left the game.', 'OK');
+            break;
+
+          case 'mode-select':
+            gameMode = msg.mode;
+            document.getElementById('mode-label').textContent = `Mode: ${gameMode}`;
+            break;
+
+          case 'torpedo-shift':
+            game.addMessage(
+              `Torpedo Boat shifted from (${String.fromCharCode(65 + msg.from[0][0])}${msg.from[0][1] + 1}) to (${String.fromCharCode(65 + msg.to[0][0])}${msg.to[0][1] + 1})!`
+            );
+            break;
+
+          case 'sub-reveal':
+            game.addMessage('Submarine revealed!');
+            break;
+        }
+      };
+
+      // Board input
+      let isFiring = true;
+
+      enemyCanvas.addEventListener('click', (e) => {
+        if (game.phase !== PHASE.PLAYING) return;
+        const { row, col } = renderer2.getCellFromMouse(e);
+        gameFlow.submitTarget(row, col);
+      });
+
+      enemyCanvas.addEventListener('mousemove', (e) => {
+        const { row, col } = renderer2.getCellFromMouse(e);
+        renderer2.hoverCell = { row, col };
+      });
+
+      enemyCanvas.addEventListener('mouseleave', () => {
+        renderer2.hoverCell = null;
+      });
+
+      // Overlay
+      function showOverlay(title, text, btnText) {
+        overlayTitle.textContent = title;
+        overlayText.textContent = text;
+        overlayBtn.textContent = btnText;
+        overlay.style.display = 'flex';
       }
-    };
 
-    // Board input
-    let isFiring = true;
+      overlayBtn.addEventListener('click', () => {
+        overlay.style.display = 'none';
+        window.location.href = '/';
+      });
 
-    enemyCanvas.addEventListener('click', (e) => {
-      if (game.phase !== PHASE.PLAYING) return;
-      const { row, col } = renderer2.getCellFromMouse(e);
-      gameFlow.submitTarget(row, col);
-    });
+      // Main game loop
+      let lastTime = 0;
+      function gameLoop(timestamp) {
+        const delta = timestamp - lastTime;
+        lastTime = timestamp;
 
-    enemyCanvas.addEventListener('mousemove', (e) => {
-      const { row, col } = renderer2.getCellFromMouse(e);
-      renderer2.hoverCell = { row, col };
-    });
+        renderer1.render(game.ownBoard, `Player ${playerId} — Your Fleet`);
+        renderer2.render(game.enemyBoard, 'Enemy Fleet');
 
-    enemyCanvas.addEventListener('mouseleave', () => {
-      renderer2.hoverCell = null;
-    });
-
-    // Overlay
-    function showOverlay(title, text, btnText) {
-      overlayTitle.textContent = title;
-      overlayText.textContent = text;
-      overlayBtn.textContent = btnText;
-      overlay.style.display = 'flex';
-    }
-
-    overlayBtn.addEventListener('click', () => {
-      overlay.style.display = 'none';
-      window.location.href = '/';
-    });
-
-    // Main game loop
-    let lastTime = 0;
-    function gameLoop(timestamp) {
-      const delta = timestamp - lastTime;
-      lastTime = timestamp;
-
-      renderer1.render(game.ownBoard, `Player ${playerId} — Your Fleet`);
-      renderer2.render(game.enemyBoard, 'Enemy Fleet');
-
+        requestAnimationFrame(gameLoop);
+      }
       requestAnimationFrame(gameLoop);
-    }
-    requestAnimationFrame(gameLoop);
 
-    // Expose for module usage
-    window.game = game;
-    window.webrtc = webrtc;
-    window.renderer1 = renderer1;
-    window.renderer2 = renderer2;
-  </script>
-</body>
+      // Expose for module usage
+      window.game = game;
+      window.webrtc = webrtc;
+      window.renderer1 = renderer1;
+      window.renderer2 = renderer2;
+    </script>
+  </body>
 </html>

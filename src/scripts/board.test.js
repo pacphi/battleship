@@ -11,18 +11,18 @@ describe('constants', () => {
   });
 
   it('SHIP_TYPES defines correct sizes', () => {
-    const sizes = SHIP_TYPES.map(s => s.size).sort((a, b) => b - a);
+    const sizes = SHIP_TYPES.map((s) => s.size).sort((a, b) => b - a);
     expect(sizes).toEqual([5, 4, 3, 3, 2, 2]);
   });
 
   it('SHIP_TYPES includes submarine hiddenUntilSunk', () => {
-    const sub = SHIP_TYPES.find(s => s.id === 'submarine');
+    const sub = SHIP_TYPES.find((s) => s.id === 'submarine');
     expect(sub).toBeDefined();
     expect(sub.hiddenUntilSunk).toBe(true);
   });
 
   it('SHIP_TYPES includes torpedo boat canShift', () => {
-    const tb = SHIP_TYPES.find(s => s.id === 'torpedo-boat');
+    const tb = SHIP_TYPES.find((s) => s.id === 'torpedo-boat');
     expect(tb).toBeDefined();
     expect(tb.canShift).toBe(true);
   });
@@ -52,13 +52,25 @@ describe('Ship', () => {
     });
 
     it('sets hidden for submarine-type ships', () => {
-      const subConfig = { id: 'submarine', name: 'Submarine', size: 2, symbol: 'S', hiddenUntilSunk: true };
+      const subConfig = {
+        id: 'submarine',
+        name: 'Submarine',
+        size: 2,
+        symbol: 'S',
+        hiddenUntilSunk: true,
+      };
       const sub = new Ship(subConfig, 'sub-1', 0, 0, false);
       expect(sub.hidden).toBe(true);
     });
 
     it('sets canShift for torpedo boats', () => {
-      const tbConfig = { id: 'torpedo-boat', name: 'Torpedo Boat', size: 2, symbol: 'T', canShift: true };
+      const tbConfig = {
+        id: 'torpedo-boat',
+        name: 'Torpedo Boat',
+        size: 2,
+        symbol: 'T',
+        canShift: true,
+      };
       const tb = new Ship(tbConfig, 'tb-1', 0, 0, false);
       expect(tb.canShift).toBe(true);
     });
@@ -74,7 +86,13 @@ describe('Ship', () => {
     });
 
     it('returns correct vertical cells', () => {
-      const verticalShip = new Ship({ id: 'test', name: 'Test', size: 3, symbol: 'T' }, 'v-1', 0, 5, true);
+      const verticalShip = new Ship(
+        { id: 'test', name: 'Test', size: 3, symbol: 'T' },
+        'v-1',
+        0,
+        5,
+        true
+      );
       const cells = verticalShip.getCells();
       expect(cells).toHaveLength(3);
       for (let i = 0; i < 3; i++) {
@@ -83,7 +101,13 @@ describe('Ship', () => {
     });
 
     it('returns correct diagonal-ish cells at offset', () => {
-      const ship2 = new Ship({ id: 'test', name: 'Test', size: 3, symbol: 'T' }, 's-2', 3, 7, false);
+      const ship2 = new Ship(
+        { id: 'test', name: 'Test', size: 3, symbol: 'T' },
+        's-2',
+        3,
+        7,
+        false
+      );
       const cells = ship2.getCells();
       expect(cells[0]).toEqual({ row: 3, col: 7 });
       expect(cells[2]).toEqual({ row: 3, col: 9 });
@@ -128,7 +152,10 @@ describe('Ship', () => {
     it('returns false for out-of-bounds position', () => {
       const tb = new Ship(
         { id: 'torpedo-boat', name: 'Torpedo Boat', size: 2, symbol: 'T', canShift: true },
-        'tb-1', 0, 0, false
+        'tb-1',
+        0,
+        0,
+        false
       );
       expect(tb.canShiftTo(-1, 0, false, new Set())).toBe(false);
     });
@@ -136,7 +163,10 @@ describe('Ship', () => {
     it('returns false for overlapping position', () => {
       const tb = new Ship(
         { id: 'torpedo-boat', name: 'Torpedo Boat', size: 2, symbol: 'T', canShift: true },
-        'tb-1', 3, 3, false
+        'tb-1',
+        3,
+        3,
+        false
       );
       // Candidate at (0,0) would occupy cells (0,0) and (0,1) which overlap with occupied
       const occupied = new Set(['0,0', '0,1']);
@@ -146,7 +176,10 @@ describe('Ship', () => {
     it('returns true for valid adjacent position', () => {
       const tb = new Ship(
         { id: 'torpedo-boat', name: 'Torpedo Boat', size: 2, symbol: 'T', canShift: true },
-        'tb-1', 3, 3, false
+        'tb-1',
+        3,
+        3,
+        false
       );
       const empty = new Set(); // No ships in the way
       expect(tb.canShiftTo(3, 4, false, empty)).toBe(true);
@@ -155,7 +188,10 @@ describe('Ship', () => {
     it('allows diagonal adjacency shift', () => {
       const tb = new Ship(
         { id: 'torpedo-boat', name: 'Torpedo Boat', size: 2, symbol: 'T', canShift: true },
-        'tb-1', 5, 5, false
+        'tb-1',
+        5,
+        5,
+        false
       );
       expect(tb.canShiftTo(6, 6, true, new Set())).toBe(true);
     });
@@ -163,7 +199,10 @@ describe('Ship', () => {
     it('blocks shift too far away', () => {
       const tb = new Ship(
         { id: 'torpedo-boat', name: 'Torpedo Boat', size: 2, symbol: 'T', canShift: true },
-        'tb-1', 0, 0, false
+        'tb-1',
+        0,
+        0,
+        false
       );
       // Distance > 1 from all original cells
       expect(tb.canShiftTo(5, 5, false, new Set())).toBe(false);
@@ -242,16 +281,16 @@ describe('Board', () => {
 
     it('can be called multiple times to re-place', () => {
       board.placeShipsRandomly();
-      const firstBoard = JSON.stringify(board.ships.map(s => `${s.row},${s.col},${s.vertical}`));
+      const firstBoard = JSON.stringify(board.ships.map((s) => `${s.row},${s.col},${s.vertical}`));
       board.placeShipsRandomly();
-      const secondBoard = JSON.stringify(board.ships.map(s => `${s.row},${s.col},${s.vertical}`));
+      const secondBoard = JSON.stringify(board.ships.map((s) => `${s.row},${s.col},${s.vertical}`));
       // With high probability the placement differs
       expect(firstBoard).not.toBe(secondBoard);
     });
 
     it('places ships of correct sizes', () => {
       board.placeShipsRandomly();
-      const sizes = board.ships.map(s => s.size).sort((a, b) => b - a);
+      const sizes = board.ships.map((s) => s.size).sort((a, b) => b - a);
       expect(sizes).toEqual([5, 4, 3, 3, 2, 2]);
     });
   });
@@ -286,7 +325,7 @@ describe('Board', () => {
     });
 
     it('tracks sink correctly', () => {
-      const carrier = board.ships.find(s => s.id === 'carrier') || board.ships[0];
+      const carrier = board.ships.find((s) => s.id === 'carrier') || board.ships[0];
       let lastResult = null;
       for (const cell of carrier.getCells()) {
         lastResult = board.fire(cell.row, cell.col);
@@ -297,7 +336,7 @@ describe('Board', () => {
 
     it('marks sunk ship with sink result', () => {
       // Use the torpedo boat (size 2) for predictable sinking
-      const targetShip = board.ships.find(s => s.size === 2 && !s.canShift) || board.ships[0];
+      const targetShip = board.ships.find((s) => s.size === 2 && !s.canShift) || board.ships[0];
       for (const cell of targetShip.getCells()) {
         board.fire(cell.row, cell.col);
       }
@@ -312,7 +351,7 @@ describe('Board', () => {
     });
 
     it('reveals submarine when first hit', () => {
-      const sub = board.ships.find(s => s.id === 'submarine');
+      const sub = board.ships.find((s) => s.id === 'submarine');
       // Submarines start hidden, so this is implicit from placement
       expect(sub).toBeDefined();
       expect(sub.hidden).toBe(true);
@@ -360,10 +399,10 @@ describe('Board', () => {
     it('includes torpedo shift data for shift-enabled ships', () => {
       board.placeShipsRandomly();
       const data = board.toSyncData();
-      const tbShip = board.ships.find(s => s.canShift);
+      const tbShip = board.ships.find((s) => s.canShift);
       if (tbShip) {
         expect(data.torpedoShifts).toBeDefined();
-        expect(data.torpedoShifts.some(t => t.id === tbShip.id)).toBe(true);
+        expect(data.torpedoShifts.some((t) => t.id === tbShip.id)).toBe(true);
       }
     });
 

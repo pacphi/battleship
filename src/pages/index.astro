@@ -1,94 +1,115 @@
 ---
 // Landing page
 ---
-<!DOCTYPE html>
+
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Battleship — Peer-to-Peer</title>
-  <link rel="stylesheet" href="/scripts/styles.css" />
-</head>
-<body>
-  <div id="app" class="landing">
-    <header class="landing-header">
-      <h1>&#9876; BATTLESHIP</h1>
-      <p class="subtitle">Peer-to-Peer Multiplayer</p>
-    </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Battleship — Peer-to-Peer</title>
+    <link rel="stylesheet" href="/scripts/styles.css" />
+  </head>
+  <body>
+    <div id="app" class="landing">
+      <header class="landing-header">
+        <h1>&#9876; BATTLESHIP</h1>
+        <p class="subtitle">Peer-to-Peer Multiplayer</p>
+      </header>
 
-    <div class="content">
-      <!-- Mode Selection -->
-      <div id="mode-selection" class="section">
-        <h2>Select Game Mode</h2>
-        <div class="mode-cards">
-          <div class="mode-card" data-mode="round">
-            <h3>&#127919; Round-Based</h3>
-            <p>3-second countdown each round. Both players must fire before the timer expires. Fast-paced battles.</p>
-          </div>
-          <div class="mode-card" data-mode="queue">
-            <h3>&#128257; Queue-Based</h3>
-            <p>Click targets whenever ready. Turns resolve when both players have fired. Relaxed pacing.</p>
-          </div>
-          <div class="mode-card" data-mode="hybrid">
-            <h3>&#9889; Hybrid</h3>
-            <p>Round-based timer with 5-second grace period. If only one player fires, the other has 5 seconds to respond. Best of both worlds.</p>
+      <div class="content">
+        <!-- Mode Selection -->
+        <div id="mode-selection" class="section">
+          <h2>Select Game Mode</h2>
+          <div class="mode-cards">
+            <div class="mode-card" data-mode="round">
+              <h3>&#127919; Round-Based</h3>
+              <p>
+                3-second countdown each round. Both players must fire before the timer expires.
+                Fast-paced battles.
+              </p>
+            </div>
+            <div class="mode-card" data-mode="queue">
+              <h3>&#128257; Queue-Based</h3>
+              <p>
+                Click targets whenever ready. Turns resolve when both players have fired. Relaxed
+                pacing.
+              </p>
+            </div>
+            <div class="mode-card" data-mode="hybrid">
+              <h3>&#9889; Hybrid</h3>
+              <p>
+                Round-based timer with 5-second grace period. If only one player fires, the other
+                has 5 seconds to respond. Best of both worlds.
+              </p>
+            </div>
           </div>
         </div>
+
+        <!-- Game Setup -->
+        <div id="game-setup" class="section" style="display:none;">
+          <h2>Start a Game</h2>
+
+          <div class="setup-actions">
+            <button id="create-btn" class="btn btn-primary">Create Game</button>
+            <div class="divider">&mdash; or &mdash;</div>
+            <div class="join-form">
+              <input id="join-code" type="text" placeholder="Enter game code" maxlength="6" />
+              <button id="join-btn" class="btn btn-secondary">Join Game</button>
+            </div>
+          </div>
+
+          <div id="game-code-display" class="code-display" style="display:none;">
+            <p>Share this code with your opponent:</p>
+            <span id="active-code" class="code"></span>
+          </div>
+        </div>
+
+        <!-- Rules -->
+        <details class="rules">
+          <summary>&#128221; Rules</summary>
+          <div class="rules-content">
+            <h3>Grid</h3>
+            <p>12x12 grid. Rows A-L, columns 1-12.</p>
+
+            <h3>Ships</h3>
+            <table>
+              <thead>
+                <tr><th>Ship</th><th>Size</th><th>Ability</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Carrier</td><td>5</td><td>Standard</td></tr>
+                <tr><td>Battleship</td><td>4</td><td>Standard</td></tr>
+                <tr><td>Heavy Cruiser</td><td>3</td><td>Standard</td></tr>
+                <tr><td>Light Cruiser</td><td>3</td><td>Standard</td></tr>
+                <tr
+                  ><td>Submarine</td><td>2</td><td
+                    >Hidden until first hit - shows as hit but no ship outline</td
+                  ></tr
+                >
+                <tr
+                  ><td>Torpedo Boat</td><td>2</td><td
+                    >Shifts to adjacent position after opponent fires a miss</td
+                  ></tr
+                >
+              </tbody>
+            </table>
+
+            <h3>Winning</h3>
+            <p>
+              Sink all of your opponent's ships. Both players fire simultaneously - first to clear
+              the enemy fleet wins!
+            </p>
+          </div>
+        </details>
       </div>
 
-      <!-- Game Setup -->
-      <div id="game-setup" class="section" style="display:none;">
-        <h2>Start a Game</h2>
-
-        <div class="setup-actions">
-          <button id="create-btn" class="btn btn-primary">Create Game</button>
-          <div class="divider">&mdash; or &mdash;</div>
-          <div class="join-form">
-            <input id="join-code" type="text" placeholder="Enter game code" maxlength="6" />
-            <button id="join-btn" class="btn btn-secondary">Join Game</button>
-          </div>
-        </div>
-
-        <div id="game-code-display" class="code-display" style="display:none;">
-          <p>Share this code with your opponent:</p>
-          <span id="active-code" class="code"></span>
-        </div>
+      <div id="loading" class="loading" style="display:none;">
+        <div class="spinner"></div>
+        <p>Connecting...</p>
       </div>
-
-      <!-- Rules -->
-      <details class="rules">
-        <summary>&#128221; Rules</summary>
-        <div class="rules-content">
-          <h3>Grid</h3>
-          <p>12x12 grid. Rows A-L, columns 1-12.</p>
-
-          <h3>Ships</h3>
-          <table>
-            <thead>
-              <tr><th>Ship</th><th>Size</th><th>Ability</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>Carrier</td><td>5</td><td>Standard</td></tr>
-              <tr><td>Battleship</td><td>4</td><td>Standard</td></tr>
-              <tr><td>Heavy Cruiser</td><td>3</td><td>Standard</td></tr>
-              <tr><td>Light Cruiser</td><td>3</td><td>Standard</td></tr>
-              <tr><td>Submarine</td><td>2</td><td>Hidden until first hit - shows as hit but no ship outline</td></tr>
-              <tr><td>Torpedo Boat</td><td>2</td><td>Shifts to adjacent position after opponent fires a miss</td></tr>
-            </tbody>
-          </table>
-
-          <h3>Winning</h3>
-          <p>Sink all of your opponent's ships. Both players fire simultaneously - first to clear the enemy fleet wins!</p>
-        </div>
-      </details>
     </div>
 
-    <div id="loading" class="loading" style="display:none;">
-      <div class="spinner"></div>
-      <p>Connecting...</p>
-    </div>
-  </div>
-
-  <script type="module" src="/scripts/landing.js"></script>
-</body>
+    <script type="module" src="/scripts/landing.js"></script>
+  </body>
 </html>

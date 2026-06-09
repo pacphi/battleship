@@ -38,42 +38,45 @@ Battleship P2P is a peer-to-peer multiplayer Battleship game built with Astro. T
 
 ### Ship Fleet
 
-| Ship | Size | Special Ability |
-|------|------|-----------------|
-| Carrier | 5 cells | Standard |
-| Battleship | 4 cells | Standard |
-| Heavy Cruiser | 3 cells | Standard |
-| Light Cruiser | 3 cells | Standard |
-| Submarine | 2 cells | Hidden until first hit (disappears when sunk) |
-| Torpedo Boat | 2 cells | Shifts to an adjacent position after opponent fires a miss |
+| Ship          | Size    | Special Ability                                            |
+| ------------- | ------- | ---------------------------------------------------------- |
+| Carrier       | 5 cells | Standard                                                   |
+| Battleship    | 4 cells | Standard                                                   |
+| Heavy Cruiser | 3 cells | Standard                                                   |
+| Light Cruiser | 3 cells | Standard                                                   |
+| Submarine     | 2 cells | Hidden until first hit (disappears when sunk)              |
+| Torpedo Boat  | 2 cells | Shifts to an adjacent position after opponent fires a miss |
 
 ## Game Modes Explained
 
 ### Round-Based Mode
+
 - 3-second timer each round
 - Both players must submit a target before time expires
 - Auto-fires first unshot cell if you don't act in time
 - Fastest gameplay — ideal for quick matches
 
 ### Queue-Based Mode
+
 - No timer — fire at your own pace
 - Resolution happens when both players have submitted targets
 - 15-second auto-target if idle
 - Best for casual play
 
 ### Hybrid Mode
+
 - Round-based timer (3 seconds)
 - If only one player fires before the timer, a 5-second grace period activates for the other player
 - Balances speed and fairness
 
 ## Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| "Connection failed" | Ensure WebRTC is allowed in browser settings; check firewall/proxy rules |
-| P2P connection lost | Game continues if signaling still works; refresh to re-establish |
-| Opponent disconnected | Game ends with overlay message |
-| Code invalid/expired | Host has 30 seconds before the game expires; ask them to create a new one |
+| Problem               | Solution                                                                  |
+| --------------------- | ------------------------------------------------------------------------- |
+| "Connection failed"   | Ensure WebRTC is allowed in browser settings; check firewall/proxy rules  |
+| P2P connection lost   | Game continues if signaling still works; refresh to re-establish          |
+| Opponent disconnected | Game ends with overlay message                                            |
+| Code invalid/expired  | Host has 30 seconds before the game expires; ask them to create a new one |
 
 ## Technical Notes
 

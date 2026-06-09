@@ -155,7 +155,7 @@ export class Renderer {
     ctx.stroke();
 
     const now = Date.now();
-    const glow = Math.sin((now % 1000) / 1000 * Math.PI) * 0.3;
+    const glow = Math.sin(((now % 1000) / 1000) * Math.PI) * 0.3;
     ctx.fillStyle = `rgba(231,76,60,${glow})`;
     ctx.fillRect(x, y, cs, cs);
   }
@@ -188,7 +188,7 @@ export class Renderer {
       const ctx = this.ctx;
 
       if (e.type === 'sink') {
-        const r = e.cs * (0.5 + age / 2000 * 2);
+        const r = e.cs * (0.5 + (age / 2000) * 2);
         ctx.strokeStyle = `rgba(231,76,60,${alpha * 0.5})`;
         ctx.lineWidth = 3;
         ctx.beginPath();
