@@ -20,6 +20,8 @@
     "tunnel:doctor": "scripts/tunnel-setup.sh doctor",
     "tunnel:install:zrok": "scripts/tunnel-setup.sh install zrok --scope project",
     "tunnel:uninstall:zrok": "scripts/tunnel-setup.sh uninstall zrok --scope project",
+    "tunnel:install:ngrok": "scripts/tunnel-setup.sh install ngrok --scope user",
+    "tunnel:uninstall:ngrok": "scripts/tunnel-setup.sh uninstall ngrok",
     "tunnel:zrok": "scripts/tunnel-setup.sh run zrok",
     "tunnel:ngrok": "scripts/tunnel-setup.sh run ngrok",
     "test": "vitest run",

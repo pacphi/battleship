@@ -75,12 +75,18 @@ pnpm tunnel:install:zrok
 # Build, start the local server, and open a zrok tunnel
 pnpm tunnel:zrok
 
-# Or use an existing ngrok install
-pnpm tunnel:ngrok
-
 # Remove the project-local zrok2 install
 pnpm tunnel:uninstall:zrok
+
+# ngrok: installs system-wide at user scope (see the User Guide for scope details)
+pnpm tunnel:install:ngrok
+pnpm tunnel:ngrok
+pnpm tunnel:uninstall:ngrok
 ```
+
+> `zrok` installs project-local into `.tools/` (checksum-verified); `ngrok` installs
+> system-wide via your OS package manager. See the [User Guide](docs/USER-GUIDE.md#lan-party-tunneling)
+> for why, and for authtoken setup.
 
 Windows users can run the PowerShell helper directly:
 
@@ -136,8 +142,10 @@ pnpm build        # &#x1F4E6;  production bundle
 pnpm preview      # &#x1F440;  local preview of build
 pnpm server       # &#x1F50D;  static site + /signaling WebSocket
 pnpm tunnel:doctor
-pnpm tunnel:install:zrok
+pnpm tunnel:install:zrok      # project-local, checksum-verified
 pnpm tunnel:uninstall:zrok
+pnpm tunnel:install:ngrok     # system-wide (user scope, via package manager)
+pnpm tunnel:uninstall:ngrok
 pnpm tunnel:zrok
 pnpm tunnel:ngrok
 pnpm test         # &#x1F9EA;  run all tests

@@ -146,11 +146,17 @@ On Windows ARM64, the installer uses zrok's Windows x64 artifact under Windows-o
 
 [ngrok](https://ngrok.com) is widely available and works well with the single-origin server.
 
+Unlike zrok, ngrok is installed **system-wide at user scope** via your OS package manager,
+not project-local into `.tools/`. Upstream ngrok publishes no release checksum or pinned
+artifact, so a verified repo-local install isn't possible — `pnpm tunnel:install:ngrok`
+therefore delegates to the native installers below and may prompt for elevated permissions.
+
 #### Setup
 
 ```bash
-# Install ngrok from https://ngrok.com/download or through the helper where supported.
-scripts/tunnel-setup.sh install ngrok --scope user
+# Install ngrok via your OS package manager (Homebrew, apt/snap). Or grab it
+# directly from https://ngrok.com/download.
+pnpm tunnel:install:ngrok
 
 # Add your authtoken once.
 ngrok config add-authtoken <your-token>
@@ -170,7 +176,7 @@ ngrok config add-authtoken <your-token>
 #### Uninstall
 
 ```bash
-scripts/tunnel-setup.sh uninstall ngrok --scope user
+pnpm tunnel:uninstall:ngrok
 ```
 
 Windows:
