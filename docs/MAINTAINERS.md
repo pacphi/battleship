@@ -5,7 +5,7 @@
 | Tool | Minimum Version | Notes |
 |------|-----------------|-------|
 | Node.js | ≥ 26 (even-numbered) | Astro v6 drops support for Node < 22.12.0; this project targets ≥ 26 |
-| pnpm | ≥ 11 | Managed via corepack (built into Node 16+) |
+| pnpm | ≥ 11 | Must be installed on PATH (or use `pnpm/action-setup` in CI) |
 
 ### Setup
 
