@@ -1,8 +1,6 @@
 # &#x1F30A; Battleship P2P &#x1F680;
 
-[![CI](https://github.com/pacphi/battleship/actions/workflows/ci.yml/badge.svg)](https://github.com/pacphi/battleship/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/pacphi/battleship?style=for-the-badge)](https://github.com/pacphi/battleship/releases)
-[![License: MIT](https://img.shields.io/github/license/pacphi/battleship?style=for-the-badge)](LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/pacphi/battleship/ci.yml?style=flat)](https://github.com/pacphi/battleship/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
 
 ## Drop in. Aim true. Sink everything. &#x1F525;
 
