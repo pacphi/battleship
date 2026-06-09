@@ -135,10 +135,12 @@ Players select one mode on the landing page before connecting. Host picks, guest
 ### 4. Signaling Server (`server/index.mjs`)
 
 Minimal relay server. Handles only:
-- `create-game`: Generates unique 6-char code, assigns to a host connection
+- `create-game`: Generates unique 6-char code (from `a-z0-9` alphabet, ~300M combinations), assigns to a host connection
 - `join-game`: Matches a guest to a host with the given code
 - `relay`: Forwards SDP offer/answer and ICE candidates between peers
-- Auto-cleanup of stale game rooms after 60 seconds of inactivity
+- **Multiple concurrent sessions**: Each game code maps to an independent room in-memory. No hard limit — constrained only by server memory (typical room: ~2 WebSocket connections + small object)
+- Auto-cleanup of stale game rooms after 60 seconds of inactivity or upon either player disconnecting
+- Room list endpoint (`/rooms`) returns active game codes (for hosts to verify their game is discoverable)
 
 ## Protocol (WebRTC DataChannel Messages)
 

@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build & Verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '26.x'
+
+      - name: Enable corepack (pnpm)
+        run: |
+          corepack enable
+          pnpm --version
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build Astro site
+        run: pnpm build
+
+      - name: Verify output
+        run: |
+          test -d dist && echo "dist/ exists" || exit 1
+          test -f dist/index.html && echo "index.html built" || exit 1
+          test -f dist/game/index.html && echo "game page built" || exit 1
+
+      - name: Verify signaling server syntax
+        run: |
+          node --check server/index.mjs && echo "signaling server OK" || exit 1

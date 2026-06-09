@@ -1,0 +1,50 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '26.x'
+
+      - name: Enable corepack (pnpm)
+        run: |
+          corepack enable
+          pnpm --version
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build Astro site
+        run: pnpm build
+
+      - name: Package release artifact
+        run: |
+          cd dist
+          zip -r ../battleship-p2p-${{ github.ref_name }}.zip .
+          cd ..
+
+      - name: Generate checksums
+        run: sha256sum battleship-p2p-${{ github.ref_name }}.zip > checksums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            battleship-p2p-${{ github.ref_name }}.zip
+            checksums.txt
+          generate_release_notes: true
