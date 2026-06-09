@@ -211,9 +211,9 @@ The tunnel only handles the **initial handshake** (SDP + ICE candidates). Once W
 
 ### Troubleshooting LAN connections
 
-| Problem | Solution |
-| --- | --- |
-| "Signaling connection failed" | Make sure **both** the static site and port 3001 are tunneled under the same hostname |
-| WebRTC handshake hangs | Check that STUN servers (Google) are reachable; some LANs block `stun.l.google.com:19302` |
-| Tunnel drops mid-game | Game continues P2P — just re-tunnel to let new players join. Restart tunnel, refresh page with same code |
-| Firewall blocking port 3001 | Tunneling bypasses local firewall — only matters if you run both services locally behind a host firewall |
+| Problem                       | Solution                                                                                                 |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------- |
+| "Signaling connection failed" | Make sure **both** the static site and port 3001 are tunneled under the same hostname                    |
+| WebRTC handshake hangs        | Check that STUN servers (Google) are reachable; some LANs block `stun.l.google.com:19302`                |
+| Tunnel drops mid-game         | Game continues P2P — just re-tunnel to let new players join. Restart tunnel, refresh page with same code |
+| Firewall blocking port 3001   | Tunneling bypasses local firewall — only matters if you run both services locally behind a host firewall |

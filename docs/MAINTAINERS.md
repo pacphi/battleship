@@ -48,7 +48,7 @@ pnpm build
 
 | Command        | Description                                          |
 | -------------- | ---------------------------------------------------- |
-| `pnpm dev`     | Start Astro dev server (<http://localhost:4321>)        |
+| `pnpm dev`     | Start Astro dev server (<http://localhost:4321>)     |
 | `pnpm build`   | Build static site to `dist/`                         |
 | `pnpm preview` | Preview built site locally                           |
 | `pnpm server`  | Run signaling server (`server/index.mjs`, port 3001) |

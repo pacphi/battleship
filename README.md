@@ -14,14 +14,14 @@
 
 ## &#x1F525; Why You'll Love It
 
-| Feature | The Deal |
-| --- | --- |
-| &#x1F9E1; **True P2P** | Your shots never touch a game server — browsers connect directly via WebRTC |
-| &#x1F310; **Zero Sign-Up** | Open the URL. Pick a mode. Share a 6-character code. That's it. |
-| &#x1F525; **Three Game Modes** | *Round-Based* for fast-fire thrills, *Queue-Based* for chill tactical play, *Hybrid* for the best of both |
-| &#x1F699; **Special Ships** | Sneaky submarines that hide until first hit. Shifting torpedo boats that dodge after a miss. |
-| &#x1F3A8; **Canvas Graphics** | Smooth HTML5 Canvas rendering with fire & splash animations |
-| &#x1F4CD; **LAN-Ready** | Works on your home network, at a hackathon, or across the globe |
+| Feature                        | The Deal                                                                                                  |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| &#x1F9E1; **True P2P**         | Your shots never touch a game server — browsers connect directly via WebRTC                               |
+| &#x1F310; **Zero Sign-Up**     | Open the URL. Pick a mode. Share a 6-character code. That's it.                                           |
+| &#x1F525; **Three Game Modes** | _Round-Based_ for fast-fire thrills, _Queue-Based_ for chill tactical play, _Hybrid_ for the best of both |
+| &#x1F699; **Special Ships**    | Sneaky submarines that hide until first hit. Shifting torpedo boats that dodge after a miss.              |
+| &#x1F3A8; **Canvas Graphics**  | Smooth HTML5 Canvas rendering with fire & splash animations                                               |
+| &#x1F4CD; **LAN-Ready**        | Works on your home network, at a hackathon, or across the globe                                           |
 
 ---
 
@@ -32,20 +32,20 @@
 3. **Pick your mode:**
    - &#x23F1;&#xFE0F; **Round-Based** — 3-second timer per round. Fast decisions. Who blinks first?
    - &#x1F984; **Queue-Based** — Fire whenever you're ready. No pressure. Maximum strategy.
-   - &#x1F504; **Hybrid** — Timer + grace period. Structure *and* flexibility.
+   - &#x1F504; **Hybrid** — Timer + grace period. Structure _and_ flexibility.
 4. **Share the 6-char code** with your opponent via chat, DM, or carrier pigeon &#x1F54A;
 5. **Click to fire.** Sink all 6 ships to win. &#x2694;&#xFE0F;
 
 ### The Fleet
 
-| Ship | Size | &#x1F3AF; Special Ability |
-| --- | --- | --- |
-| &#x1F6DD; Carrier | 5 cells | Classic heavy hitter |
-| &#x1F6A2; Battleship | 4 cells | Second only to the carrier in power |
-| &#x1F6E3;&#xFE0F; Heavy Cruiser | 3 cells | Solid workhorse of the fleet |
-| &#x1F6E3;&#xFE0F; Light Cruiser | 3 cells | Agile and versatile |
-| &#x1F432; Submarine | 2 cells | **Hidden until first hit** — invisible threat! |
-| &#x1F6A5; Torpedo Boat | 2 cells | **Shifts position after a miss** — never still for long! |
+| Ship                            | Size    | &#x1F3AF; Special Ability                                |
+| ------------------------------- | ------- | -------------------------------------------------------- |
+| &#x1F6DD; Carrier               | 5 cells | Classic heavy hitter                                     |
+| &#x1F6A2; Battleship            | 4 cells | Second only to the carrier in power                      |
+| &#x1F6E3;&#xFE0F; Heavy Cruiser | 3 cells | Solid workhorse of the fleet                             |
+| &#x1F6E3;&#xFE0F; Light Cruiser | 3 cells | Agile and versatile                                      |
+| &#x1F432; Submarine             | 2 cells | **Hidden until first hit** — invisible threat!           |
+| &#x1F6A5; Torpedo Boat          | 2 cells | **Shifts position after a miss** — never still for long! |
 
 ---
 
@@ -84,7 +84,7 @@ Browser (Player 1)  <──────── WebRTC P2P ───────�
 ```
 
 - **Game state** lives entirely in each player's browser &#x1F9F0;
-- **Signaling server** handles *only* the initial WebRTC handshake — it never sees a single move
+- **Signaling server** handles _only_ the initial WebRTC handshake — it never sees a single move
 - **Rendering** via vanilla HTML5 Canvas with `requestAnimationFrame` loop
 - **Zero dependencies** on UI frameworks — just pure, performant JS
 
@@ -99,14 +99,14 @@ Browser (Player 1)  <──────── WebRTC P2P ───────�
 
 ## &#x1F9EA; Tech Stack
 
-| Layer | Tech |
-| --- | --- |
-| &#x1F3A8; Pages | Astro (static output) |
+| Layer                       | Tech                      |
+| --------------------------- | ------------------------- |
+| &#x1F3A8; Pages             | Astro (static output)     |
 | &#x1F579;&#xFE0F; Rendering | HTML5 Canvas (vanilla JS) |
-| &#x1F517; Networking | WebRTC DataChannel (P2P) |
-| &#x1F50D; Signaling | Node.js `ws` WebSocket |
-| &#x1F3AF; Styling | Pure CSS |
-| &#x1F9EA; Testing | Vitest |
+| &#x1F517; Networking        | WebRTC DataChannel (P2P)  |
+| &#x1F50D; Signaling         | Node.js `ws` WebSocket    |
+| &#x1F3AF; Styling           | Pure CSS                  |
+| &#x1F9EA; Testing           | Vitest                    |
 
 ---
 
