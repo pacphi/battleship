@@ -1,5 +1,7 @@
 ---
 // Game page
+const cogMode = import.meta.env.COG_MODE === 'true' || import.meta.env.COG_MODE === '1';
+const cogToken = import.meta.env.COG_TOKEN ?? '';
 ---
 
 <!doctype html>
@@ -15,6 +17,8 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/scripts/styles.css" />
+    {cogMode && <meta name="cog-mode" content="true" />}
+    {cogMode && cogToken && <meta name="cog-token" content={cogToken} />}
   </head>
   <body>
     <div id="app">
@@ -53,11 +57,15 @@
       </div>
     </div>
 
-    <script type="module">
-      import { WebRTCManager } from '/scripts/webrtc.js';
-      import { Game, PHASE } from '/scripts/game.js';
-      import { Renderer } from '/scripts/renderer.js';
-      import { GameFlow } from '/scripts/game-flow.js';
+    <script type="module" define:vars={{ cogMode }}>
+      const [{ WebRTCManager }, { Game, PHASE }, { Renderer }, { GameFlow }] = await Promise.all([
+        cogMode
+          ? import('/scripts/webrtc-cog.js').then((m) => ({ WebRTCManager: m.CogSignalingManager }))
+          : import('/scripts/webrtc.js'),
+        import('/scripts/game.js'),
+        import('/scripts/renderer.js'),
+        import('/scripts/game-flow.js'),
+      ]);
 
       const ownCanvas = document.getElementById('own-board');
       const enemyCanvas = document.getElementById('enemy-board');

@@ -12,17 +12,17 @@ Battleship has two pieces, and multiplayer needs **both on the same origin** (sa
 protocol + host + port):
 
 1. **The static site** — the built game in `dist/`. Plain files; any static host serves them.
-2. **The signaling endpoint** — a WebSocket at **`/signaling`** that introduces the two
-   browsers to each other. This needs a process that can hold WebSocket connections.
+2. **The signaling endpoint** — introduces the two browsers to each other. In the standard
+   deployment this is a WebSocket at **`/signaling`**; in the Seed deployment it's an HTTP
+   long-poll API inside a self-contained Rust binary.
 
 ```
 https://your-domain/            →  static files from dist/
-https://your-domain/signaling   →  WebSocket signaling (server/index.mjs)
+https://your-domain/signaling   →  signaling (WebSocket or HTTP long-poll)
 ```
 
 > ⚠️ **Static-only hosting isn't enough by itself.** If you deploy only `dist/`, the game
-> page loads but players can't connect, because there's no `/signaling` endpoint. You need a
-> WebSocket-capable service mounted at `/signaling` on the **same origin**.
+> page loads but players can't connect. You need a signaling service on the **same origin**.
 
 ## Build it
 
@@ -73,6 +73,33 @@ connects to `wss://example.com/signaling`. If signaling lives elsewhere, route
 > If WebSocket signaling on your static platform is awkward, the path of least resistance is
 > **Option A** on a small Node host, with your static platform (if any) proxying `/signaling`
 > to it.
+
+## Option C — Cognitum One Seed
+
+A Seed device (Raspberry Pi Zero 2W running Cognitum OS) runs a single self-contained
+Rust binary — `cog-battleship` — that embeds the entire frontend and replaces the
+Node.js signaling server with an HTTP long-poll API. No Node.js on the device.
+No WebSocket proxy configuration. The Seed agent handles reverse-proxying.
+
+```bash
+# Build the cog for Pi Zero 2W (runs pnpm build automatically)
+cross build --manifest-path cogs/battleship/Cargo.toml \
+            --release \
+            --target armv6-unknown-linux-musleabihf
+
+# Copy binary and manifest to the device, then:
+cog install ~/cogs/battleship/cog.toml
+cog start battleship
+```
+
+The game URL comes from the Seed dashboard. Players open it and play identically to
+any other deployment — the long-poll/WebSocket distinction is invisible to them.
+
+> This is the only deployment option that requires a Rust toolchain to build.
+> See the **[Seed guide](SEED.md)** for the full walkthrough, prerequisites, and
+> troubleshooting.
+
+---
 
 ## How the pieces fit
 

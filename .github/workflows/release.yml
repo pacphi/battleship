@@ -8,43 +8,143 @@ on:
 permissions:
   contents: write
 
-jobs:
-  release:
-    name: Build & Release
-    runs-on: ubuntu-latest
+env:
+  NODE_VERSION: '26'
+  RUST_TOOLCHAIN: stable
+  COG_TARGET: armv6-unknown-linux-musleabihf
 
+jobs:
+  # ── Web build ──────────────────────────────────────────────────────────────
+  build-web:
+    name: Build · Astro site
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
 
-      - name: Setup Node.js
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: '26.x'
-
-      - name: Enable corepack (pnpm)
-        run: |
-          corepack enable
-          pnpm --version
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
-      - name: Build Astro site
+      - name: Build Astro site (standard)
         run: pnpm build
 
-      - name: Package release artifact
+      - name: Package web artifact
         run: |
           cd dist
           zip -r ../battleship-p2p-${{ github.ref_name }}.zip .
           cd ..
 
+      - name: Upload web artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-artifact
+          path: |
+            battleship-p2p-${{ github.ref_name }}.zip
+
+  # ── Seed cog build ─────────────────────────────────────────────────────────
+  build-cog:
+    name: Build · Seed cog (armv6)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Build the frontend with cog settings so dist/ is ready before cross runs.
+      # build.rs will see dist/ present and skip the internal pnpm call.
+      - name: Build Astro site (cog mode)
+        run: pnpm build
+        env:
+          COG_MODE: 'true'
+          COG_TOKEN: '__COG_TOKEN__'
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: ${{ env.COG_TARGET }}
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            cogs/battleship/target
+          key: cargo-release-${{ env.COG_TARGET }}-${{ hashFiles('cogs/battleship/Cargo.lock') }}
+          restore-keys: cargo-release-${{ env.COG_TARGET }}-
+
+      - name: Install cross
+        run: cargo install cross --locked
+
+      - name: Build cog binary (armv6)
+        run: |
+          cross build \
+            --manifest-path cogs/battleship/Cargo.toml \
+            --release \
+            --target ${{ env.COG_TARGET }}
+
+      - name: Stage cog artifact
+        run: |
+          cp cogs/battleship/target/${{ env.COG_TARGET }}/release/cog-battleship \
+             cog-battleship-arm
+          chmod +x cog-battleship-arm
+          cp cogs/battleship/cog.toml cog-battleship.cog.toml
+
+      - name: Upload cog artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: cog-artifact
+          path: |
+            cog-battleship-arm
+            cog-battleship.cog.toml
+
+  # ── GitHub Release ──────────────────────────────────────────────────────────
+  release:
+    name: Publish Release
+    runs-on: ubuntu-latest
+    needs: [build-web, build-cog]
+    steps:
+      - name: Download web artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: web-artifact
+
+      - name: Download cog artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: cog-artifact
+
       - name: Generate checksums
-        run: sha256sum battleship-p2p-${{ github.ref_name }}.zip > checksums.txt
+        run: |
+          sha256sum \
+            battleship-p2p-${{ github.ref_name }}.zip \
+            cog-battleship-arm \
+            cog-battleship.cog.toml \
+            > checksums.txt
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             battleship-p2p-${{ github.ref_name }}.zip
+            cog-battleship-arm
+            cog-battleship.cog.toml
             checksums.txt
           generate_release_notes: true
