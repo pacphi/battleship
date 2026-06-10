@@ -311,11 +311,19 @@ describe('Board', () => {
     });
 
     it('marks cell as MISS when shooting water', () => {
-      // Shoot a cell far from any likely ship position
-      const result = board.fire(0, 0);
+      let waterCell = null;
+      for (let row = 0; row < GRID_SIZE && !waterCell; row++) {
+        for (let col = 0; col < GRID_SIZE && !waterCell; col++) {
+          if (board.grid[row][col] === CELL.EMPTY) {
+            waterCell = { row, col };
+          }
+        }
+      }
+
+      const result = board.fire(waterCell.row, waterCell.col);
       expect(result.result).toBe('miss');
       expect(result.ship).toBeNull();
-      expect(board.shotResults[`${0},${0}`]).toBe('miss');
+      expect(board.shotResults[`${waterCell.row},${waterCell.col}`]).toBe('miss');
     });
 
     it('returns already-shot for repeated shots', () => {

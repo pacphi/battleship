@@ -1,9 +1,26 @@
 import { WebSocketServer } from 'ws';
 import { randomBytes } from 'crypto';
+import { createReadStream, existsSync } from 'fs';
+import { extname, join, normalize, resolve } from 'path';
+import { createServer } from 'http';
 
-const PORT = 3001;
+const PORT = Number(process.env.PORT || 4321);
+const DIST_DIR = resolve(process.env.DIST_DIR || 'dist');
 const CODE_LENGTH = 6;
 const STALE_TIMEOUT = 60_000;
+const SIGNALING_PATH = '/signaling';
+
+const CONTENT_TYPES = new Map([
+  ['.css', 'text/css; charset=utf-8'],
+  ['.html', 'text/html; charset=utf-8'],
+  ['.ico', 'image/x-icon'],
+  ['.js', 'text/javascript; charset=utf-8'],
+  ['.json', 'application/json; charset=utf-8'],
+  ['.map', 'application/json; charset=utf-8'],
+  ['.png', 'image/png'],
+  ['.svg', 'image/svg+xml; charset=utf-8'],
+  ['.webp', 'image/webp'],
+]);
 
 // All active rooms: Map<code, { hostWs, guestWs, lastActivity }>
 const rooms = new Map();
@@ -16,9 +33,74 @@ function generateCode() {
   return code;
 }
 
-const wss = new WebSocketServer({ port: PORT });
+function sendText(res, statusCode, body) {
+  res.writeHead(statusCode, { 'content-type': 'text/plain; charset=utf-8' });
+  res.end(body);
+}
 
-console.log(`Signaling server running on ws://localhost:${PORT}`);
+function resolveStaticPath(urlPath) {
+  const decodedPath = decodeURIComponent(urlPath.split('?')[0]);
+  const relativePath = normalize(decodedPath)
+    .replace(/^(\.\.[/\\])+/, '')
+    .replace(/^[/\\]/, '');
+  const candidate = resolve(DIST_DIR, relativePath || 'index.html');
+
+  if (candidate !== DIST_DIR && !candidate.startsWith(`${DIST_DIR}/`)) {
+    return null;
+  }
+
+  if (existsSync(candidate)) {
+    return candidate;
+  }
+
+  const indexCandidate = join(candidate, 'index.html');
+  if (existsSync(indexCandidate)) {
+    return indexCandidate;
+  }
+
+  return join(DIST_DIR, 'index.html');
+}
+
+const server = createServer((req, res) => {
+  if (!existsSync(DIST_DIR)) {
+    sendText(res, 503, 'dist/ not found. Run `pnpm build` before starting the tunnel server.\n');
+    return;
+  }
+
+  if (req.url === '/healthz') {
+    sendText(res, 200, 'ok\n');
+    return;
+  }
+
+  const filePath = resolveStaticPath(req.url || '/');
+  if (!filePath || !existsSync(filePath)) {
+    sendText(res, 404, 'not found\n');
+    return;
+  }
+
+  const contentType = CONTENT_TYPES.get(extname(filePath)) || 'application/octet-stream';
+  res.writeHead(200, { 'content-type': contentType });
+  createReadStream(filePath).pipe(res);
+});
+
+const wss = new WebSocketServer({ noServer: true });
+
+server.on('upgrade', (req, socket, head) => {
+  const { pathname } = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+  if (pathname !== SIGNALING_PATH) {
+    socket.destroy();
+    return;
+  }
+
+  wss.handleUpgrade(req, socket, head, (ws) => {
+    wss.emit('connection', ws, req);
+  });
+});
+
+server.listen(PORT, () => {
+  console.log(`Battleship tunnel server running on http://localhost:${PORT}`);
+  console.log(`Signaling endpoint: ws://localhost:${PORT}${SIGNALING_PATH}`);
+});
 
 // Cleanup stale rooms periodically
 setInterval(() => {
@@ -134,7 +216,7 @@ wss.on('connection', (ws) => {
 });
 
 wss.on('listening', () => {
-  console.log(`Active rooms endpoint: ws://localhost:${PORT} (send {"type":"list-rooms"})`);
+  console.log(`Active rooms endpoint: ws://localhost:${PORT}${SIGNALING_PATH}`);
 });
 
 process.on('SIGINT', () => {
@@ -144,6 +226,7 @@ process.on('SIGINT', () => {
     room.guestWs?.close();
   }
   rooms.clear();
-  wss.close();
-  process.exit(0);
+  wss.close(() => {
+    server.close(() => process.exit(0));
+  });
 });

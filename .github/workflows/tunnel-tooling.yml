@@ -1,0 +1,60 @@
+name: Tunnel Tooling Smoke Test
+
+# Flexes the install/uninstall code paths in scripts/tunnel-setup.sh for both
+# providers. The high-value target is zrok: the script downloads a versioned
+# upstream artifact and verifies its SHA-256 against the published checksum file.
+# Upstream format drift in that checksum file has broken installs before, so this
+# runs on a weekly cron (to catch drift early), on release tags, and on demand.
+on:
+  push:
+    tags:
+      - 'v*'
+  schedule:
+    - cron: '17 4 * * 1' # Mondays 04:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Auto-confirm the package-manager prompts in install_ngrok / uninstall_ngrok.
+  TUNNEL_ASSUME_YES: '1'
+
+jobs:
+  tunnel-tooling:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-14] # x64 + ARM64 exercise detect_zrok_asset
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '26'
+
+      # --- zrok: project-local, checksum-verified -------------------------------
+      - name: zrok · install
+        run: pnpm tunnel:install:zrok
+
+      - name: zrok · verify binary
+        run: .tools/bin/zrok2 version
+
+      - name: zrok · uninstall
+        run: pnpm tunnel:uninstall:zrok
+
+      # --- ngrok: system-wide via OS package manager ----------------------------
+      - name: ngrok · install
+        run: pnpm tunnel:install:ngrok
+
+      - name: ngrok · verify binary
+        run: ngrok version
+
+      - name: ngrok · uninstall
+        run: pnpm tunnel:uninstall:ngrok

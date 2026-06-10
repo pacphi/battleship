@@ -1,373 +1,289 @@
 #Requires -Version 5.1
-<#
-.SYNOPSIS
-    tunnel-setup.pwsh — Interactive LAN-party tunneling setup for Windows
 
-.DESCRIPTION
-    Prompts you to choose a provider (ngrok or zrok), checks if the CLI is
-    installed, offers to install it via winget (preferred) or Scoop, then walks
-    you through account setup and tunnel creation step by step.
+param(
+    [ValidateSet("doctor", "install", "uninstall", "run")]
+    [string]$Command = "doctor",
 
-    Designed for non-technical users with clear prompts and color-coded output.
+    [ValidateSet("", "zrok", "ngrok")]
+    [string]$Provider = "",
 
-    Color coding : Green = success  |  Red = failure / error  |  Yellow = warning
+    [ValidateSet("project", "user")]
+    [string]$Scope = "project",
 
-.NOTES
-    Run in PowerShell 5.1+ or PowerShell Core (6+). Right-click → "Run with PowerShell"
-#>
+    [string]$Version = "2.0.4",
 
-# ── colours ────────────────────────────────────────────────────────────────
-function Write-Ok   { param($Msg) Write-Host "✓ $Msg"         -ForegroundColor Green }
-function Write-Err  { param($Msg) Write-Host "✗ $Msg"         -ForegroundColor Red    }
-function Write-Warn { param($Msg) Write-Host "! $Msg"         -ForegroundColor Yellow }
-function Write-Info { param($Msg) Write-Host "→ $Msg"         -ForegroundColor Cyan   }
-function Write-Bold { param($Msg) Write-Host "$Msg"           -ForegroundColor White  }
+    [int]$Port = 4321
+)
 
-function Show-Sep {
-    param($Title)
-    Write-Host ""
-    Write-Host "--- $Title ---" -ForegroundColor DarkGray
-    Write-Host ""
+$ErrorActionPreference = "Stop"
+$ScriptPath = if ($PSCommandPath) { $PSCommandPath } elseif ($MyInvocation.MyCommand.Path) { $MyInvocation.MyCommand.Path } else { "" }
+$ScriptDir = if ($ScriptPath) { Split-Path -Parent $ScriptPath } elseif ($PSScriptRoot) { $PSScriptRoot } else { Get-Location }
+$CandidateRoot = Resolve-Path $ScriptDir
+if ((Test-Path (Join-Path $CandidateRoot "package.json")) -and (Test-Path (Join-Path $CandidateRoot "scripts/tunnel-setup.pwsh"))) {
+    $RootDir = $CandidateRoot
+} else {
+    $RootDir = Resolve-Path (Join-Path $CandidateRoot "..")
 }
 
-# ── helpers ────────────────────────────────────────────────────────────────
+function Write-Ok { param([string]$Message) Write-Host "OK  $Message" -ForegroundColor Green }
+function Write-Warn { param([string]$Message) Write-Host "WARN $Message" -ForegroundColor Yellow }
+function Write-Info { param([string]$Message) Write-Host "INFO $Message" -ForegroundColor Cyan }
+function Write-Err { param([string]$Message) Write-Host "ERR $Message" -ForegroundColor Red }
+
 function Test-Cmd {
-    param($Name)
+    param([string]$Name)
     return $null -ne (Get-Command $Name -ErrorAction SilentlyContinue)
 }
 
-function Read-Choice {
+function Confirm-Action {
+    param([string]$Prompt)
+    $answer = Read-Host "$Prompt [y/N]"
+    return $answer -match "^(y|yes)$"
+}
+
+function Get-Paths {
     param(
-        [string]$Prompt,
-        [string]$Default = "Y"
+        [string]$Tool,
+        [string]$InstallScope,
+        [string]$ToolVersion
     )
-    $choices = if ($Default -eq "Y") { "[Y/n]" } else { "[y/N]" }
-    $input = Read-Host "$Prompt $choices"
-    if ([string]::IsNullOrWhiteSpace($input)) { return $Default }
-    return $input
+
+    if ($InstallScope -eq "project") {
+        $installRoot = Join-Path $RootDir ".tools\$Tool"
+        $binDir = Join-Path $RootDir ".tools\bin"
+        $manifestDir = Join-Path $RootDir ".tools\manifests"
+    } else {
+        $installRoot = Join-Path $env:LOCALAPPDATA "Programs\battleship-tools\$Tool"
+        $binDir = Join-Path $env:LOCALAPPDATA "Programs\battleship-tools\bin"
+        $manifestDir = Join-Path $env:LOCALAPPDATA "Programs\battleship-tools\manifests"
+    }
+
+    return [pscustomobject]@{
+        InstallRoot = $installRoot
+        InstallDir = Join-Path $installRoot $ToolVersion
+        BinDir = $binDir
+        ManifestDir = $manifestDir
+        ManifestPath = Join-Path $manifestDir "$Tool-$InstallScope.json"
+    }
 }
 
-# ── 0  WELCOME ─────────────────────────────────────────────────────────────
-clear
-Write-Bold "    Battleship P2P — LAN Tunnel Setup"
-Write-Host ""
-Write-Info "This helper walks you through setting up a tunnel so friends on your LAN"
-Write-Info "can open the game in their browser and connect peer-to-peer."
-Write-Host ""
-
-# ── 1  Pick a provider ─────────────────────────────────────────────────────
-Show-Sep "Step 1 of 5 — Choose a tunnel provider"
-
-Write-Host "  ngrok     Quickest to start. Free tier gives a random URL that changes"
-Write-Host "            each session. No install needed (uses npx) but you can"
-Write-Host "            install the CLI for a persistent domain."
-Write-Host ""
-Write-Host "  zrok      Open-source & free. Creates stable long-lived tunnels under a"
-Write-Host "            shared frontend domain. Best for multi-day LAN events."
-Write-Host ""
-
-$providerChoice = Read-Choice "Which provider do you want? (1 = ngrok, 2 = zrok)"
-
-switch ($providerChoice) {
-    "1"; "ngrok" { $Provider = "ngrok" }
-    "2"; "zrok"  { $Provider = "zrok" }
-    default      { Write-Err "Unrecognized input '$providerChoice'. Expected 1 or 2."; exit 1 }
-}
-Write-Ok "You chose: $Provider"
-Write-Host ""
-
-# ── 2  Check CLI & install if needed ───────────────────────────────────────
-Show-Sep "Step 2 of 5 — Is the $Provider CLI installed?"
-
-if (Test-Cmd $Provider) {
-    $cmd = Get-Command $Provider
-    Write-Ok "$Provider is installed ($($cmd.Source))"
-    $keep = Read-Choice "Keep it?"
-    if ($keep -eq "n") { $WantInstall = $true } else { $WantInstall = $false }
-} else {
-    Write-Warn "$Provider was NOT found on your system."
-    $WantInstall = $true
+function Get-ZrokAssetPlatform {
+    $arch = $env:PROCESSOR_ARCHITECTURE
+    switch ($arch) {
+        "AMD64" { return [pscustomobject]@{ Platform = "windows_amd64"; Compatibility = $false } }
+        "ARM64" {
+            Write-Warn "zrok does not currently publish a Windows ARM64 artifact; using Windows x64 under emulation."
+            return [pscustomobject]@{ Platform = "windows_amd64"; Compatibility = $true }
+        }
+        default { throw "Unsupported Windows architecture: $arch" }
+    }
 }
 
-if ($WantInstall) {
-    Write-Host ""
-    Show-Sep "Installing $Provider CLI"
+function Invoke-Download {
+    param([string]$Uri, [string]$OutFile)
+    Invoke-WebRequest -Uri $Uri -OutFile $OutFile -UseBasicParsing
+}
 
-    # ── detect package manager (winget preferred, then scoop) ───────────
-    $installed = $false
+function Install-Zrok {
+    param([string]$InstallScope, [string]$ToolVersion)
+
+    $platformInfo = Get-ZrokAssetPlatform
+    $asset = "zrok_$($ToolVersion)_$($platformInfo.Platform).tar.gz"
+    $baseUrl = "https://github.com/openziti/zrok/releases/download/v$ToolVersion"
+    $archiveUrl = "$baseUrl/$asset"
+    $checksumUrl = "$baseUrl/checksums.sha256.txt"
+    $paths = Get-Paths -Tool "zrok2" -InstallScope $InstallScope -ToolVersion $ToolVersion
+
+    New-Item -ItemType Directory -Force -Path $paths.InstallDir, $paths.BinDir, $paths.ManifestDir | Out-Null
+    $tmp = Join-Path ([System.IO.Path]::GetTempPath()) "battleship-zrok-$([guid]::NewGuid())"
+    New-Item -ItemType Directory -Force -Path $tmp | Out-Null
+
+    try {
+        $archive = Join-Path $tmp $asset
+        $checksums = Join-Path $tmp "checksums.sha256.txt"
+
+        Write-Info "Downloading $asset"
+        Invoke-Download -Uri $archiveUrl -OutFile $archive
+        Invoke-Download -Uri $checksumUrl -OutFile $checksums
+
+        $expectedLine = Get-Content $checksums | Where-Object { $_ -match "\s$([regex]::Escape($asset))$" } | Select-Object -First 1
+        if (-not $expectedLine) {
+            throw "Checksum file did not contain $asset"
+        }
+        $expected = ($expectedLine -split "\s+")[0].ToLowerInvariant()
+        $actual = (Get-FileHash -Algorithm SHA256 -Path $archive).Hash.ToLowerInvariant()
+        if ($expected -ne $actual) {
+            throw "Checksum mismatch for $asset"
+        }
+        Write-Ok "Verified SHA-256 checksum"
+
+        tar -xzf $archive -C $tmp
+        $exe = Get-ChildItem -Path $tmp -Recurse -File -Filter "zrok2.exe" | Select-Object -First 1
+        if (-not $exe) {
+            throw "Archive did not contain zrok2.exe"
+        }
+
+        $binPath = Join-Path $paths.InstallDir "zrok2.exe"
+        Copy-Item -Force $exe.FullName $binPath
+
+        $shimPath = Join-Path $paths.BinDir "zrok2.cmd"
+        "@echo off`r`n""$binPath"" %*`r`n" | Set-Content -Encoding ASCII -Path $shimPath
+
+        $manifest = [ordered]@{
+            tool = "zrok2"
+            provider = "zrok"
+            version = $ToolVersion
+            asset = $asset
+            scope = $InstallScope
+            installDir = $paths.InstallDir
+            binDir = $paths.BinDir
+            binPath = $shimPath
+            sha256 = $actual
+            compatibilityMode = $platformInfo.Compatibility
+        }
+        $manifest | ConvertTo-Json | Set-Content -Encoding UTF8 -Path $paths.ManifestPath
+
+        Write-Ok "Installed zrok2 $ToolVersion at $binPath"
+        if (($env:Path -split ";") -notcontains $paths.BinDir) {
+            Write-Warn "$($paths.BinDir) is not on PATH."
+        }
+    } finally {
+        Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
+    }
+}
+
+function Uninstall-Zrok {
+    param([string]$InstallScope, [string]$ToolVersion)
+
+    $paths = Get-Paths -Tool "zrok2" -InstallScope $InstallScope -ToolVersion $ToolVersion
+    if (-not (Test-Path $paths.ManifestPath)) {
+        Write-Warn "No manifest found at $($paths.ManifestPath)"
+        return
+    }
+
+    $manifest = Get-Content $paths.ManifestPath | ConvertFrom-Json
+    if (-not $manifest.installDir.StartsWith($paths.InstallRoot)) {
+        throw "Refusing to remove unmanaged install dir: $($manifest.installDir)"
+    }
+
+    Remove-Item -Force $manifest.binPath -ErrorAction SilentlyContinue
+    Remove-Item -Recurse -Force $manifest.installDir -ErrorAction SilentlyContinue
+    Remove-Item -Force $paths.ManifestPath
+    Write-Ok "Uninstalled managed zrok2 ($InstallScope)"
+}
+
+function Install-Ngrok {
+    param([string]$InstallScope)
+
+    if ($InstallScope -ne "user") {
+        throw "ngrok project-local installs are not managed. Use -Scope user or install from https://ngrok.com/download/windows."
+    }
 
     if (Test-Cmd winget) {
-        Write-Info "Found winget at $($((Get-Command winget).Source))"
-        Write-Host ""
-        Write-Bold "We prefer winget for installing tools on Windows."
-        Write-Host ""
-        $ans = Read-Choice "Install with winget?"
-        if ($ans -eq "y") {
-            switch ($Provider) {
-                "ngrok" { $wingetId = "Ngrok.ngrok" }
-                "zrok"  { $wingetId = $null ; Write-Warn "zrok not in winget — trying Scoop next." }
-            }
-            if ($wingetId) {
-                Write-Info "Running: winget install --id $wingetId --accept-source-agreements --accept-package-agreements"
-                try {
-                    $err = winget install --id $wingetId --accept-source-agreements --accept-package-agreements 2>&1
-                    if ($LASTEXITCODE -eq 0) {
-                        Write-Ok "$Provider installed via winget!"
-                        $installed = $true
-                    } else {
-                        Write-Warn "winget install failed: $(($err -join '`n'))"
-                    }
-                } catch {
-                    Write-Warn "winget install threw: $_"
-                }
-            }
-        }
-    }
-
-    if (-not $installed) {
-        # Scoop fallback
-        if (Test-Cmd scoop) {
-            Write-Info "Found Scoop at $($((Get-Command scoop).Source))"
-            Write-Host ""
-            $ans = Read-Choice "Install with Scoop?"
-            if ($ans -eq "y") {
-                # ngrok is in the extras bucket; zrok may not be in any bucket yet
-                $scoopId = if ($Provider -eq "ngrok") { "extras/ngrok" } else { $Provider }
-                Write-Info "Running: scoop install $scoopId"
-                try {
-                    $err = scoop install $scoopId 2>&1
-                    if ($LASTEXITCODE -eq 0 -or $?) {
-                        Write-Ok "$Provider installed via Scoop!"
-                        $installed = $true
-                    } else {
-                        Write-Warn "Scoop install failed: $(($err -join '`n'))"
-                    }
-                } catch {
-                    Write-Warn "Scoop install threw: $_"
-                }
-            }
-        }
-    }
-
-    # ── fallback for zrok on Windows (not in winget/scoop) ─────────────
-    if (-not $installed -and $Provider -eq "zrok") {
-        Write-Host ""
-        Write-Warn "We couldn't install zrok automatically. Download it manually:"
-        Write-Host ""
-        Write-Info "1. Go to https://github.com/openzzone/zrok/releases"
-        Write-Info "2. Download the Windows AMD64 zip (zrok_windows_amd64.zip)"
-        Write-Info "3. Extract it and add the folder to your PATH, or run from that folder"
-        Write-Host ""
-
-        $ans = Read-Choice "Have you installed zrok manually?"
-        if ($ans -eq "n") { exit 1 }
-    }
-
-    # ── check again ────────────────────────────────────────────────────
-    # winget/scoop install may need PATH refresh — give a hint
-    Write-Host ""
-    $tryCmd = Get-Command $Provider -ErrorAction SilentlyContinue
-    if ($tryCmd) {
-        Write-Ok "Great — $Provider is now available."
-        try { & $Provider --version 2>$null | Out-Null ; $ver = & $Provider --version } catch { $ver = "unknown" }
-        Write-Info "Version: $ver"
+        winget install --id Ngrok.ngrok --accept-source-agreements --accept-package-agreements
+    } elseif (Test-Cmd scoop) {
+        scoop install extras/ngrok
     } else {
-        Write-Warn "Restart your terminal (or run `refreshenv`) and try again."
-        Write-Info "If still not found, install manually using the instructions above."
+        throw "No supported ngrok installer found. Install from https://ngrok.com/download/windows."
     }
-    Write-Host ""
+    Write-Ok "ngrok is installed"
+}
 
-    # Also check for mise on Windows (it works there too!)
-    if (Test-Cmd mise) {
-        Write-Info "(You also have mise installed. For future installs: use \`mise install $Provider\`)"
+function Uninstall-Ngrok {
+    if (Test-Cmd winget) {
+        if (Confirm-Action "Remove ngrok with winget?") {
+            winget uninstall --id Ngrok.ngrok
+            return
+        }
+    }
+    if (Test-Cmd scoop) {
+        if (Confirm-Action "Remove ngrok with scoop?") {
+            scoop uninstall ngrok
+            return
+        }
+    }
+    Write-Warn "No managed ngrok package was removed."
+}
+
+function Get-ProviderTool {
+    param([string]$TunnelProvider)
+
+    if ($TunnelProvider -eq "zrok") {
+        $local = Join-Path $RootDir ".tools\bin\zrok2.cmd"
+        if (Test-Path $local) { return $local }
+        $cmd = Get-Command zrok2 -ErrorAction SilentlyContinue
+        if ($cmd) { return $cmd.Source }
+    }
+
+    if ($TunnelProvider -eq "ngrok") {
+        $cmd = Get-Command ngrok -ErrorAction SilentlyContinue
+        if ($cmd) { return $cmd.Source }
+    }
+
+    throw "$TunnelProvider CLI not found."
+}
+
+function Ensure-Build {
+    Push-Location $RootDir
+    try {
+        if (-not (Test-Path "dist")) {
+            Write-Info "Building static site"
+            pnpm build
+        }
+    } finally {
+        Pop-Location
     }
 }
 
-# ── 3  Account setup ───────────────────────────────────────────────────────
-Show-Sep "Step 3 of 5 — Set up your account"
+function Run-Provider {
+    param([string]$TunnelProvider, [int]$LocalPort)
 
-switch ($Provider) {
-    "ngrok" {
-        Write-Info "ngrok needs a free account for a persistent auth token."
-        Write-Host ""
-        Write-Info "1. Go to https://ngrok.com and sign up (takes ~30 seconds)"
-        Write-Info "2. After logging in, go to: https://dashboard.ngrok.com/get-started/your-authtoken"
-        Write-Info "3. Copy the Authtoken value (long alphanumeric string)"
-        Write-Host ""
+    $tool = Get-ProviderTool -TunnelProvider $TunnelProvider
+    Ensure-Build
 
-        $authtoken = Read-Host "Paste your ngrok Authtoken here (or press Enter to skip)"
-        if (-not [string]::IsNullOrWhiteSpace($authtoken)) {
-            try {
-                & ngrok config add-authtoken $authtoken 2>&1 | Out-Null
-                Write-Ok "ngrok authtoken saved."
-            } catch {
-                Write-Warn "Could not save token. Please run manually:"
-                Write-Host "   ngrok config add-authtoken <your-token>"
+    Push-Location $RootDir
+    try {
+        Write-Info "Starting single-origin Battleship server on http://localhost:$LocalPort"
+        $server = Start-Process pwsh -ArgumentList "-NoProfile", "-Command", "`$env:PORT=$LocalPort; pnpm server" -NoNewWindow -PassThru
+        Start-Sleep -Seconds 2
+
+        try {
+            if ($TunnelProvider -eq "zrok") {
+                & $tool share public $LocalPort
+            } else {
+                & $tool http $LocalPort
             }
-        } else {
-            Write-Warn "Skipping — you can set it later with: ngrok config add-authtoken <token>"
+        } finally {
+            Stop-Process -Id $server.Id -ErrorAction SilentlyContinue
         }
-        Write-Host ""
-    }
-
-    "zrok" {
-        Write-Info "zrok requires a free account invite code (you get one at signup)."
-        Write-Host ""
-        Write-Info "1. Go to https://app.zrok.io/register and create your free account"
-        Write-Info "2. Check your email for the 'invite accept' link"
-        Write-Info "3. Click the link — it will give you an invite code like: ZRxxxxx"
-        Write-Host ""
-
-        $inviteCode = Read-Host "Paste your zrok invite code here (or press Enter to skip)"
-        if (-not [string]::IsNullOrWhiteSpace($inviteCode)) {
-            try {
-                & zrok invite accept $inviteCode 2>&1 | Out-Null
-                Write-Ok "zrok account linked."
-            } catch {
-                Write-Warn "Could not accept invite. Run manually:"
-                Write-Host "   zrok invite accept <your-invite-code>"
-            }
-        } else {
-            Write-Warn "Skipping — you can set it later with: zrok invite accept <code>"
-        }
-        Write-Host ""
+    } finally {
+        Pop-Location
     }
 }
 
-# ── 4  Start the build server ───────────────────────────────────────────────
-Show-Sep "Step 4 of 5 — Build & start the game"
-Write-Host ""
+function Invoke-Doctor {
+    Write-Info "Node: $(try { node --version } catch { 'missing' })"
+    Write-Info "pnpm: $(try { (Get-Command pnpm -ErrorAction Stop).Source } catch { 'missing' })"
+    Write-Info "zrok2: $(try { Get-ProviderTool zrok } catch { 'missing' })"
+    Write-Info "ngrok: $(try { (Get-Command ngrok -ErrorAction Stop).Source } catch { 'missing' })"
+}
 
-if (-not (Test-Path "dist")) {
-    Write-Warn "No 'dist/' directory found. Building the site first..."
-    if (Test-Cmd pnpm) {
-        pnpm build
-    } elseif (Test-Cmd npm) {
-        npm run build
-    } else {
-        Write-Err "Neither pnpm nor npm found. Please build the site manually."
-        exit 1
+switch ($Command) {
+    "doctor" {
+        Invoke-Doctor
     }
-    Write-Ok "Build complete!"
-} else {
-    Write-Ok "dist/ directory already exists."
-}
-
-Write-Host ""
-Write-Info "Starting the game server on port 4321…"
-Write-Info "(press Ctrl+C to stop it later — don't close this terminal)"
-Write-Host ""
-
-# Start the Astro dev server in the background, capture its PID
-$DevPid = $null
-if (Test-Cmd pnpm) {
-    $proc = Start-Process pwsh -ArgumentList "-Command", "pnpm dev --port 4321" -NoNewWindow -PassThru
-    $DevPid = $proc.Id
-} elseif (Test-Cmd npm) {
-    $proc = Start-Process pwsh -ArgumentList "-Command", "npm run dev -- --port 4321" -NoNewWindow -PassThru
-    $DevPid = $proc.Id
-}
-
-if ($DevPid) {
-    Write-Ok "Game server started (PID $DevPid) on http://localhost:4321"
-} else {
-    Write-Warn "Could not start the dev server. Start it manually with:"
-    Write-Host "   pnpm dev --port 4321"
-}
-Write-Host ""
-
-# ── 5  Create the tunnels ───────────────────────────────────────────────────
-Show-Sep "Step 5 of 5 — Open your tunnels"
-
-Write-Bold "We need TWO tunnels under the SAME hostname:"
-Write-Host ""
-Write-Ok "Tunnel 1 → Static game site (port 4321)"
-Write-Ok "Tunnel 2 → Signaling server   (port 3001)"
-Write-Host ""
-Write-Info "Open TWO new PowerShell (or Command Prompt) windows. Copy the commands below."
-Write-Host ""
-
-switch ($Provider) {
-    "ngrok" {
-        Write-Bold "Terminal 1 — tunnel for the game site:"
-        Write-Info 'Run: ngrok http 4321'
-        Write-Host ""
-        Write-Info "Copy the forwarding URL (starts with https:// ... .ngrok-free.app)"
-        Write-Host ""
-
-        $tunnelUrl = Read-Host "Paste the URL you got above"
-        if ($tunnelUrl -match 'ngrok') {
-            # Extract domain from the first tunnel URL for reference
-            $domain = $tunnelUrl -replace 'https://', ''
-            $domain = $domain -split '/' | Select-Object -First 1
-
-            Write-Host ""
-            Write-Bold "Terminal 2 — tunnel for the signaling server:"
-            Write-Host ""
-            Write-Bold "Option A (recommended) — single ngrok process with both ports:"
-            Write-Host '   ngrok http http://localhost:4321,http://localhost:3001'
-            Write-Host ""
-            Write-Bold "Option B — separate tunnels (use only if Option A shows a mismatch):"
-            Write-Host "   ngrok http 3001 --domain $domain"
-        } else {
-            Write-Warn "Couldn't parse the ngrok URL. Manually point both services under"
-            Write-Warn "the same ngrok dashboard domain."
-        }
+    "install" {
+        if ($Provider -eq "zrok") { Install-Zrok -InstallScope $Scope -ToolVersion $Version }
+        elseif ($Provider -eq "ngrok") { Install-Ngrok -InstallScope $Scope }
+        else { throw "install requires Provider zrok or ngrok" }
     }
-
-    "zrok" {
-        Write-Bold "Terminal 1 — tunnel for the game site:"
-        Write-Info 'Run: zrok share exposed dist http://localhost:4321'
-        Write-Host ""
-        Write-Info "Copy the public forwarding URL it outputs (starts with https:// ... .zrok.io)"
-        Write-Host ""
-
-        $zrokUrl = Read-Host "Paste the zrok URL here to continue"
-        if (-not [string]::IsNullOrWhiteSpace($zrokUrl)) {
-            $zrokBase = $zrokUrl.TrimEnd('/')
-            Write-Host ""
-            Write-Bold "Terminal 2 — tunnel for the signaling server:"
-            Write-Info "Copy this command into Terminal 2:"
-            Write-Host ""
-            Write-Host "   zrok share exposed server/index.mjs http://localhost:3001 --address $zrokBase"
-            Write-Host ""
-            Write-Ok "Both tunnels will share the domain: $zrokBase"
-        } else {
-            Write-Warn "You can set up Terminal 2 manually."
-        }
+    "uninstall" {
+        if ($Provider -eq "zrok") { Uninstall-Zrok -InstallScope $Scope -ToolVersion $Version }
+        elseif ($Provider -eq "ngrok") { Uninstall-Ngrok }
+        else { throw "uninstall requires Provider zrok or ngrok" }
+    }
+    "run" {
+        if ($Provider -ne "zrok" -and $Provider -ne "ngrok") { throw "run requires Provider zrok or ngrok" }
+        Run-Provider -TunnelProvider $Provider -LocalPort $Port
     }
 }
-
-# ── wrap-up ────────────────────────────────────────────────────────────────
-Show-Sep "All done! Here's what to share with your friends"
-Write-Host ""
-
-switch ($Provider) {
-    "ngrok" {
-        if ($tunnelUrl) {
-            Write-Info "Share this URL: $tunnelUrl"
-        } else {
-            Write-Info "Share the ngrok URL from Terminal 1."
-        }
-    }
-    "zrok" {
-        if ($zrokUrl) {
-            Write-Info "Share this URL: $zrokUrl"
-        } else {
-            Write-Info "Share the zrok public forwarding URL from Terminal 1."
-        }
-    }
-}
-
-Write-Host ""
-Write-Info "Players open that link → choose a game mode → click 'Create Game' or 'Join Game'"
-Write-Info "The tunnel only handles the initial handshake. Once WebRTC connects,"
-Write-Info "game data flows peer-to-peer — no longer through the tunnel."
-Write-Host ""
-
-if ($DevPid) {
-    Write-Warn "To stop the game server later, run: Stop-Process -Id $DevPid"
-}
-Write-Host ""
-Write-Bold "Enjoy your LAN party!"
-Write-Host ""
