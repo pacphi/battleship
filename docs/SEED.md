@@ -33,13 +33,13 @@ device only handles the initial handshake.
 
 ## Prerequisites
 
-| Tool | What you need | Notes |
-|------|--------------|-------|
-| **Rust** | stable toolchain | `curl https://sh.rustup.rs \| sh` |
-| **Cross-compile target** | `armv6-unknown-linux-musleabihf` | `rustup target add armv6-unknown-linux-musleabihf` |
-| **musl cross-linker** | `cross` (recommended) or `arm-linux-musleabihf-gcc` | `cargo install cross` |
-| **pnpm** | ≥ 11 | Required by the Cargo build script to build the frontend |
-| **A Seed device** | Pi Zero 2W with Cognitum OS | With `cog` CLI available |
+| Tool                     | What you need                                       | Notes                                                    |
+| ------------------------ | --------------------------------------------------- | -------------------------------------------------------- |
+| **Rust**                 | stable toolchain                                    | `curl https://sh.rustup.rs \| sh`                        |
+| **Cross-compile target** | `armv6-unknown-linux-musleabihf`                    | `rustup target add armv6-unknown-linux-musleabihf`       |
+| **musl cross-linker**    | `cross` (recommended) or `arm-linux-musleabihf-gcc` | `cargo install cross`                                    |
+| **pnpm**                 | ≥ 11                                                | Required by the Cargo build script to build the frontend |
+| **A Seed device**        | Pi Zero 2W with Cognitum OS                         | With `cog` CLI available                                 |
 
 > **`cross` vs. a native linker:** `cross` uses Docker to handle the musl toolchain
 > automatically and is the simplest option on macOS and Linux. If you're on a Linux
@@ -132,25 +132,25 @@ dashboard. The 6-character code workflow, game modes, and controls are all the s
 The cog binary reads these at startup. The Seed agent sets `COGNITUM_COG_TOKEN`
 automatically; the others are optional overrides:
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `COGNITUM_COG_TOKEN` | (required, set by agent) | Bearer token for authenticated endpoints |
-| `COG_PORT` | `8073` | Port to bind on loopback |
-| `COG_POLL_TIMEOUT_MS` | `20000` | Max milliseconds a poll request blocks |
-| `COG_MAX_ROOMS` | `256` | Max concurrent signaling rooms |
+| Variable              | Default                  | Purpose                                  |
+| --------------------- | ------------------------ | ---------------------------------------- |
+| `COGNITUM_COG_TOKEN`  | (required, set by agent) | Bearer token for authenticated endpoints |
+| `COG_PORT`            | `8073`                   | Port to bind on loopback                 |
+| `COG_POLL_TIMEOUT_MS` | `20000`                  | Max milliseconds a poll request blocks   |
+| `COG_MAX_ROOMS`       | `256`                    | Max concurrent signaling rooms           |
 
 ---
 
 ## If something goes wrong
 
-| Problem | What to do |
-|---|---|
-| `cross build` fails with linker error | Run `cross doctor` to check Docker is running |
-| `pnpm build` fails inside the Rust build | Run `pnpm build` manually from the repo root to see the Astro error |
-| `cog status` shows the cog crashed | Check `cog logs battleship` — the most likely cause is `COGNITUM_COG_TOKEN` not set |
-| Players get 401 on every request | The browser token doesn't match the runtime token — rebuild: the placeholder substitution requires a fresh binary start |
-| WebRTC handshake hangs | Some networks block STUN servers (`stun.l.google.com:19302`). Try a different network. |
-| Game works locally but not for remote players | Confirm the Seed agent is exposing port 8073 and the public URL is reachable |
+| Problem                                       | What to do                                                                                                              |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `cross build` fails with linker error         | Run `cross doctor` to check Docker is running                                                                           |
+| `pnpm build` fails inside the Rust build      | Run `pnpm build` manually from the repo root to see the Astro error                                                     |
+| `cog status` shows the cog crashed            | Check `cog logs battleship` — the most likely cause is `COGNITUM_COG_TOKEN` not set                                     |
+| Players get 401 on every request              | The browser token doesn't match the runtime token — rebuild: the placeholder substitution requires a fresh binary start |
+| WebRTC handshake hangs                        | Some networks block STUN servers (`stun.l.google.com:19302`). Try a different network.                                  |
+| Game works locally but not for remote players | Confirm the Seed agent is exposing port 8073 and the public URL is reachable                                            |
 
 ---
 

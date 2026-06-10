@@ -58,14 +58,9 @@ const cogToken = import.meta.env.COG_TOKEN ?? '';
     </div>
 
     <script type="module" define:vars={{ cogMode }}>
-      const [
-        { WebRTCManager },
-        { Game, PHASE },
-        { Renderer },
-        { GameFlow },
-      ] = await Promise.all([
+      const [{ WebRTCManager }, { Game, PHASE }, { Renderer }, { GameFlow }] = await Promise.all([
         cogMode
-          ? import('/scripts/webrtc-cog.js').then(m => ({ WebRTCManager: m.CogSignalingManager }))
+          ? import('/scripts/webrtc-cog.js').then((m) => ({ WebRTCManager: m.CogSignalingManager }))
           : import('/scripts/webrtc.js'),
         import('/scripts/game.js'),
         import('/scripts/renderer.js'),

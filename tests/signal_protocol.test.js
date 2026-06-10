@@ -255,9 +255,7 @@ describe('test_bearer_token_included', () => {
 
   it('should include Authorization Bearer header on pollMessages', async () => {
     // Arrange
-    globalThis.fetch.mockResolvedValueOnce(
-      mockOkResponse({ messages: [], seq: 0 }),
-    );
+    globalThis.fetch.mockResolvedValueOnce(mockOkResponse({ messages: [], seq: 0 }));
 
     // Act
     await pollMessages('abc123', 0);
@@ -310,7 +308,7 @@ describe('test_poll_loop', () => {
           { seq: 1, payload: { type: 'answer', sdp: 'v=0 answer' } },
         ],
         seq: 2,
-      }),
+      })
     );
 
     // Poll 2: ICE candidate
@@ -318,7 +316,7 @@ describe('test_poll_loop', () => {
       mockOkResponse({
         messages: [{ seq: 2, payload: { type: 'ice', candidate: 'candidate:0' } }],
         seq: 3,
-      }),
+      })
     );
 
     // Poll 3+: return a rejected promise so the loop hits its catch → _sleep →
@@ -361,13 +359,11 @@ describe('test_poll_loop', () => {
       mockOkResponse({
         messages: [{ seq: 0, payload: { type: 'offer' } }],
         seq: 2,
-      }),
+      })
     );
 
     // Poll 2: captured for URL inspection, then stop
-    globalThis.fetch.mockResolvedValueOnce(
-      mockOkResponse({ messages: [], seq: 2 }),
-    );
+    globalThis.fetch.mockResolvedValueOnce(mockOkResponse({ messages: [], seq: 2 }));
 
     globalThis.fetch.mockRejectedValue(new Error('stop'));
 

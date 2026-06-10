@@ -20,14 +20,14 @@ Cognitum One Seed devices run cogs — self-contained Rust binaries that bind a 
 
 The existing `ws://host/signaling` endpoint is replaced with a REST + long-poll API served by the Rust cog:
 
-| Endpoint | Auth | Purpose |
-|---|---|---|
-| `POST /signal/create` | paired | Host creates room → `{"code":"abc123"}` |
-| `POST /signal/{code}/join` | paired | Guest joins room |
-| `POST /signal/{code}/push` | paired | Push SDP/ICE message |
-| `GET /signal/{code}/poll?seq=N` | paired | Long-poll for messages after seq N |
-| `POST /signal/{code}/leave` | paired | Tear down room |
-| `GET /`, `/game`, `/scripts/*`, `/health` | open | Static assets + liveness |
+| Endpoint                                  | Auth   | Purpose                                 |
+| ----------------------------------------- | ------ | --------------------------------------- |
+| `POST /signal/create`                     | paired | Host creates room → `{"code":"abc123"}` |
+| `POST /signal/{code}/join`                | paired | Guest joins room                        |
+| `POST /signal/{code}/push`                | paired | Push SDP/ICE message                    |
+| `GET /signal/{code}/poll?seq=N`           | paired | Long-poll for messages after seq N      |
+| `POST /signal/{code}/leave`               | paired | Tear down room                          |
+| `GET /`, `/game`, `/scripts/*`, `/health` | open   | Static assets + liveness                |
 
 Poll blocks up to 20 s on a `Condvar`; returns HTTP 204 on timeout, 200 + JSON array on messages. This faithfully replaces WebSocket push semantics for the thin signaling phase (tens of messages, not a stream).
 
