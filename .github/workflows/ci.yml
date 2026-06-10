@@ -31,6 +31,5 @@ jobs:
       - run: pnpm run lint
       - run: pnpm run lint:md
       - run: pnpm run format:check
-      - run: pnpm audit
       - run: pnpm run test
       - run: pnpm run build

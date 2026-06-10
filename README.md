@@ -1,6 +1,6 @@
 # &#x1F30A; Battleship P2P &#x1F680;
 
-[![CI](https://img.shields.io/github/actions/workflow/status/pacphi/battleship/ci.yml?style=flat)](https://github.com/pacphi/battleship/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/pacphi/battleship/ci.yml?style=flat)](https://github.com/pacphi/battleship/actions/workflows/ci.yml) [![Security Audit](https://img.shields.io/github/actions/workflow/status/pacphi/battleship/security.yml?style=flat&label=security)](https://github.com/pacphi/battleship/actions/workflows/security.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
 
 ## Drop in. Aim true. Sink everything. &#x1F525;
 
@@ -118,6 +118,8 @@ Browser (Player 1)  <──────── WebRTC P2P ───────�
 
 ## 📚 Documentation
 
+Want a feel for the game first? Take the **[📸 Screenshots tour](docs/SCREENSHOTS.md)** — a few annotated shots from start screen to firing the first salvo.
+
 Start at the **[Guide index](docs/USER-GUIDE.md)** — it routes you by what you want to do:
 
 - **[🎮 Playing](docs/PLAYING.md)** — a friend sent you a link or a code. Zero setup, just a browser.
@@ -143,23 +145,41 @@ Start at the **[Guide index](docs/USER-GUIDE.md)** — it routes you by what you
 ## &#x2699;&#xFE0F; Scripts
 
 ```bash
+# &#x1F3D7;&#xFE0F;  Build & run
 pnpm dev          # &#x1F3B2;&#xFE0F;  Astro dev server
 pnpm build        # &#x1F4E6;  production bundle
 pnpm preview      # &#x1F440;  local preview of build
 pnpm server       # &#x1F50D;  static site + /signaling WebSocket
+
+# &#x1F9ED;  Host friends over a tunnel (see docs/HOSTING.md for the walkthrough)
 pnpm tunnel:setup             # &#x1F9ED;  guided: pick a tunnel, sign in, host
 pnpm tunnel:doctor            # &#x1FA7A;  health check: is everything ready to host?
 pnpm tunnel:install:zrok      # project-local, checksum-verified
 pnpm tunnel:uninstall:zrok
 pnpm tunnel:install:ngrok     # system-wide (user scope, via package manager)
 pnpm tunnel:uninstall:ngrok
-pnpm tunnel:zrok
-pnpm tunnel:ngrok
-pnpm test         # &#x1F9EA;  run all tests
+pnpm tunnel:zrok              # build, serve, open a zrok tunnel
+pnpm tunnel:ngrok             # build, serve, open an ngrok tunnel
+
+# &#x2705;  Quality gates (see docs/MAINTAINERS.md → Developer workflow)
+pnpm test         # &#x1F9EA;  run all tests once
+pnpm test:watch   # &#x1F441;&#xFE0F;   re-run tests on change
+pnpm typecheck    # &#x1F50E;  astro check (TS + template types)
 pnpm lint         # &#x1F9E1;  ESLint
-pnpm lint:md      # &#x1F4D6;  Markdown lint (markdownlint-cli2)
+pnpm lint:fix     # &#x1F527;  ESLint with autofix
 pnpm format       # &#x1F4BE;  Prettier across everything
-pnpm check        # &#x2705  typecheck + lint + format + test
+pnpm format:check # &#x1F4CF;  Prettier in check-only mode
+pnpm lint:md      # &#x1F4D6;  Markdown lint (markdownlint-cli2)
+pnpm lint:md:fix  # &#x1F4DD;  Markdown lint with autofix
+pnpm check        # &#x2705;  typecheck + lint + format:check + test
+pnpm fix          # &#x1F9F9;  lint:fix + format (auto-clean everything)
+
+# &#x1F4E6;  Dependency hygiene
+pnpm audit            # &#x1F6E1;&#xFE0F;   report known vulnerabilities (also runs weekly in CI)
+pnpm audit:fix        # &#x1F527;  apply available audit fixes
+pnpm deps:outdated    # &#x1F4C5;  list outdated dependencies
+pnpm deps:update      # &#x2B06;&#xFE0F;   update within semver ranges
+pnpm deps:update:latest  # &#x1F680;  update to latest (may break)
 ```
 
 ---
