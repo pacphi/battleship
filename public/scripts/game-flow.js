@@ -9,6 +9,9 @@ export class GameFlow {
     this.pendingOpponentTargets = [];
     this.hybridGraceActive = false;
     this.hybridGraceTimer = null;
+    // Set by the page to surface the Victory overlay when we sink the last
+    // enemy ship (we never receive our own broadcast game-over message).
+    this.onGameOver = null;
   }
 
   start(mode) {
@@ -77,6 +80,10 @@ export class GameFlow {
       })),
     ];
 
+    // Resolve our own shots against the enemy board so Enemy Waters shows the
+    // hits/misses and we can detect a kill.
+    this._applyMyShots(myTargets);
+
     // Reset opponent queue
     this.pendingOpponentTargets = [];
 
@@ -86,6 +93,10 @@ export class GameFlow {
       turns: allTargets,
       mode: this.game.mode,
     });
+
+    // If that salvo sank the enemy fleet, end the game instead of scheduling
+    // another round.
+    if (this._checkVictory()) return;
 
     // Start next round
     this._nextRoundTimer(3000);
@@ -119,6 +130,7 @@ export class GameFlow {
           player: this.game.playerId === 1 ? 2 : 1,
         })),
       ];
+      this._applyMyShots(myTargets);
       this.pendingOpponentTargets = [];
 
       this.webrtc.send({
@@ -126,6 +138,7 @@ export class GameFlow {
         turns: allTargets,
         mode: this.game.mode,
       });
+      if (this._checkVictory()) return;
       this._startIdleTimer();
     }
   }
@@ -164,6 +177,29 @@ export class GameFlow {
   }
 
   // --- Shared helpers ---
+
+  // Resolve our own shots locally against the mirrored enemy board so the
+  // shooter sees hit/miss markers on Enemy Waters.
+  _applyMyShots(myTargets) {
+    for (const t of myTargets) {
+      const result = this.game.enemyBoard.fire(t.row, t.col);
+      if (result.result === 'sink') {
+        this.game.addMessage(`You sank the enemy ${result.ship.name}!`);
+      }
+    }
+  }
+
+  // Did our shots just sink the entire enemy fleet? If so, end the game,
+  // notify the opponent, and trigger our own Victory overlay.
+  _checkVictory() {
+    const ships = this.game.enemyBoard.ships;
+    const allSunk = ships.length > 0 && ships.every((s) => s.sunk);
+    if (!allSunk) return false;
+    this.webrtc.send({ type: 'game-over', winner: this.game.playerId });
+    if (this.onGameOver) this.onGameOver(this.game.playerId);
+    this.destroy();
+    return true;
+  }
 
   receiveOpponentTarget(row, col) {
     this.pendingOpponentTargets.push({ row, col });
