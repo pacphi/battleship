@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 
 param(
-    [ValidateSet("doctor", "install", "uninstall", "run")]
+    [ValidateSet("setup", "doctor", "install", "uninstall", "run")]
     [string]$Command = "doctor",
 
     [ValidateSet("", "zrok", "ngrok")]
@@ -12,7 +12,10 @@ param(
 
     [string]$Version = "2.0.4",
 
-    [int]$Port = 4321
+    [int]$Port = 4321,
+
+    [switch]$Yes,
+    [switch]$AssumeYes
 )
 
 $ErrorActionPreference = "Stop"
@@ -37,8 +40,82 @@ function Test-Cmd {
 
 function Confirm-Action {
     param([string]$Prompt)
+    if ($script:Yes -or $script:AssumeYes) {
+        Write-Info "$Prompt (auto-confirmed)"
+        return $true
+    }
     $answer = Read-Host "$Prompt [y/N]"
     return $answer -match "^(y|yes)$"
+}
+
+function Test-PortInUse {
+    param([int]$TargetPort)
+    try {
+        $client = [System.Net.Sockets.TcpClient]::new()
+        $async = $client.BeginConnect("127.0.0.1", $TargetPort, $null, $null)
+        $connected = $async.AsyncWaitHandle.WaitOne(300) -and $client.Connected
+        $client.Close()
+        return $connected
+    } catch {
+        return $false
+    }
+}
+
+# Returns $null when zrok is not installed, $true when enabled, $false otherwise.
+function Test-ZrokEnabled {
+    $tool = $null
+    try { $tool = Get-ProviderTool zrok } catch { return $null }
+    $out = (& $tool status 2>&1 | Out-String)
+    if ($out -match "(?i)enable command") { return $false }
+    return $true
+}
+
+# Returns $null when ngrok is not installed, $true when an authtoken is found, $false otherwise.
+function Test-NgrokAuthed {
+    if (-not (Test-Cmd ngrok)) { return $null }
+    $out = (& ngrok config check 2>&1 | Out-String)
+    $candidates = @()
+    if ($out -match "(?im)\bat\s+(.+)$") { $candidates += $Matches[1].Trim() }
+    $candidates += (Join-Path $env:LOCALAPPDATA "ngrok\ngrok.yml")
+    $candidates += (Join-Path $env:USERPROFILE ".ngrok2\ngrok.yml")
+    foreach ($f in $candidates) {
+        if ($f -and (Test-Path $f) -and (Select-String -Path $f -Pattern "authtoken" -Quiet -ErrorAction SilentlyContinue)) {
+            return $true
+        }
+    }
+    return $false
+}
+
+function Invoke-Preflight {
+    param([string]$TunnelProvider)
+    if ($TunnelProvider -eq "zrok") {
+        if ((Test-ZrokEnabled) -eq $false) {
+            Write-Err "zrok is installed, but your environment isn't enabled yet."
+            Write-Info "Enable it once with a free token:"
+            Write-Info "  1. Sign up at https://zrok.io - the web console shows your token and enable command"
+            Write-Info "  2. Run: .\.tools\bin\zrok2.cmd enable <your-token>"
+            Write-Info "Or run the guided setup: .\scripts\tunnel-setup.pwsh setup"
+            throw "zrok environment not enabled"
+        }
+    } elseif ($TunnelProvider -eq "ngrok") {
+        if ((Test-NgrokAuthed) -eq $false) {
+            Write-Warn "Couldn't confirm an ngrok authtoken. If the tunnel fails to start:"
+            Write-Info "  1. Sign up at https://dashboard.ngrok.com/signup"
+            Write-Info "  2. Copy your token: https://dashboard.ngrok.com/get-started/your-authtoken"
+            Write-Info "  3. Run: ngrok config add-authtoken <your-token>"
+        }
+    }
+}
+
+function Select-Provider {
+    if ($script:Yes -or $script:AssumeYes) { return "zrok" }
+    Write-Host ""
+    Write-Host "Which tunnel do you want to use?" -ForegroundColor White
+    Write-Host "  1) zrok  - free, open-source, installs just for this project (recommended)"
+    Write-Host "  2) ngrok - popular, installs on your whole computer"
+    $ans = Read-Host "Choose 1 or 2 [1]"
+    if ($ans -eq "2" -or $ans -eq "ngrok") { return "ngrok" }
+    return "zrok"
 }
 
 function Get-Paths {
@@ -239,6 +316,10 @@ function Run-Provider {
     param([string]$TunnelProvider, [int]$LocalPort)
 
     $tool = Get-ProviderTool -TunnelProvider $TunnelProvider
+    Invoke-Preflight -TunnelProvider $TunnelProvider
+    if (Test-PortInUse $LocalPort) {
+        Write-Warn "Port $LocalPort is already in use; the local server may fail to start."
+    }
     Ensure-Build
 
     Push-Location $RootDir
@@ -262,13 +343,127 @@ function Run-Provider {
 }
 
 function Invoke-Doctor {
-    Write-Info "Node: $(try { node --version } catch { 'missing' })"
-    Write-Info "pnpm: $(try { (Get-Command pnpm -ErrorAction Stop).Source } catch { 'missing' })"
-    Write-Info "zrok2: $(try { Get-ProviderTool zrok } catch { 'missing' })"
-    Write-Info "ngrok: $(try { (Get-Command ngrok -ErrorAction Stop).Source } catch { 'missing' })"
+    Write-Host "Battleship tunnel doctor" -ForegroundColor White
+    Write-Host ""
+
+    Write-Host "Core" -ForegroundColor White
+    if (Test-Cmd node) { Write-Ok "Node $(node --version)" } else { Write-Err "Node missing - install Node >= 26" }
+    if (Test-Cmd pnpm) { Write-Ok "pnpm $(pnpm --version) ($((Get-Command pnpm).Source))" } else { Write-Err "pnpm missing - run: corepack enable" }
+    if (Test-Path (Join-Path $RootDir "dist")) { Write-Ok "Game is built (dist/ present)" } else { Write-Warn "Game not built yet - builds automatically on first run, or run: pnpm build" }
+    if (Test-PortInUse $Port) { Write-Warn "Port $Port is busy - close the other server, or pass -Port <n>" } else { Write-Ok "Port $Port is free" }
+    Write-Host ""
+
+    Write-Host "zrok  (recommended - free, installs just for this project)" -ForegroundColor White
+    $zEnabled = Test-ZrokEnabled
+    if ($null -eq $zEnabled) {
+        Write-Warn "Not installed - run: .\scripts\tunnel-setup.pwsh setup   (or: install zrok)"
+    } elseif ($zEnabled) {
+        Write-Ok "Installed and enabled - ready to host"
+    } else {
+        Write-Ok "Installed"
+        Write-Warn "Not enabled yet - run: .\scripts\tunnel-setup.pwsh setup   (or: .\.tools\bin\zrok2.cmd enable <token>)"
+    }
+    Write-Host ""
+
+    Write-Host "ngrok  (installs on your whole computer)" -ForegroundColor White
+    $nAuth = Test-NgrokAuthed
+    if ($null -eq $nAuth) {
+        Write-Warn "Not installed - run: .\scripts\tunnel-setup.pwsh setup   (or: install ngrok)"
+    } elseif ($nAuth) {
+        Write-Ok "Installed with authtoken - ready to host"
+    } else {
+        Write-Ok "Installed"
+        Write-Warn "No authtoken found - run: .\scripts\tunnel-setup.pwsh setup   (or: ngrok config add-authtoken <token>)"
+    }
+    Write-Host ""
+
+    Write-Host "Next step" -ForegroundColor White
+    Write-Info "New here?  .\scripts\tunnel-setup.pwsh setup  walks you through everything."
+    Write-Info "Ready?     .\scripts\tunnel-setup.pwsh run zrok  starts your public link."
+}
+
+function Setup-Tunnel {
+    param([string]$TunnelProvider)
+
+    Write-Host "Battleship - host setup" -ForegroundColor White
+    Write-Info "This gets you one public link to share so a friend can join your game."
+    Write-Host ""
+
+    if (-not $TunnelProvider) { $TunnelProvider = Select-Provider }
+    Write-Info "Using $TunnelProvider."
+    Write-Host ""
+
+    # Step 1 - make sure the tool is installed
+    $installed = $true
+    try { Get-ProviderTool $TunnelProvider | Out-Null } catch { $installed = $false }
+    if (-not $installed) {
+        Write-Warn "$TunnelProvider isn't installed yet."
+        if (Confirm-Action "Install $TunnelProvider now?") {
+            if ($TunnelProvider -eq "zrok") { Install-Zrok -InstallScope "project" -ToolVersion $Version }
+            else { Install-Ngrok -InstallScope "user" }
+        } else {
+            throw "Can't continue without $TunnelProvider. Re-run setup when you're ready."
+        }
+    } else {
+        Write-Ok "$TunnelProvider is installed."
+    }
+    Write-Host ""
+
+    # Step 2 - make sure it's signed in
+    if ($TunnelProvider -eq "zrok") {
+        if (Test-ZrokEnabled) {
+            Write-Ok "Your zrok environment is already enabled."
+        } else {
+            Write-Warn "zrok needs a free account token - this is a one-time step."
+            Write-Info "1. Sign up at https://zrok.io"
+            Write-Info "2. The web console shows your token and the exact enable command"
+            if ($script:Yes -or $script:AssumeYes) {
+                Write-Warn "Non-interactive - skipping token entry. Run later: .\.tools\bin\zrok2.cmd enable <token>"
+            } else {
+                $token = Read-Host "Paste your zrok token (or press Enter to skip)"
+                if ($token) { & (Get-ProviderTool zrok) enable $token } else { Write-Warn "Skipped." }
+            }
+        }
+    } else {
+        if (Test-NgrokAuthed) {
+            Write-Ok "ngrok already has an authtoken."
+        } else {
+            Write-Warn "ngrok needs an authtoken - this is a one-time step."
+            Write-Info "1. Sign up at https://dashboard.ngrok.com/signup"
+            Write-Info "2. Copy your token: https://dashboard.ngrok.com/get-started/your-authtoken"
+            if ($script:Yes -or $script:AssumeYes) {
+                Write-Warn "Non-interactive - skipping token entry. Run later: ngrok config add-authtoken <token>"
+            } else {
+                $token = Read-Host "Paste your ngrok authtoken (or press Enter to skip)"
+                if ($token) { & (Get-ProviderTool ngrok) config add-authtoken $token } else { Write-Warn "Skipped." }
+            }
+        }
+    }
+    Write-Host ""
+
+    # Step 3 - make sure the game is built
+    if (Test-Path (Join-Path $RootDir "dist")) {
+        Write-Ok "Game is already built."
+    } elseif (Confirm-Action "Build the game now (needed before hosting)?") {
+        Push-Location $RootDir
+        try { pnpm build } finally { Pop-Location }
+    }
+    Write-Host ""
+
+    # Step 4 - recap and offer to launch
+    Invoke-Doctor
+    Write-Host ""
+    if (Confirm-Action "Start hosting now (opens your public link)?") {
+        Run-Provider -TunnelProvider $TunnelProvider -LocalPort $Port
+    } else {
+        Write-Info "When you're ready: .\scripts\tunnel-setup.pwsh run $TunnelProvider"
+    }
 }
 
 switch ($Command) {
+    "setup" {
+        Setup-Tunnel -TunnelProvider $Provider
+    }
     "doctor" {
         Invoke-Doctor
     }

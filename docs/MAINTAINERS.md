@@ -1,5 +1,8 @@
 # Battleship P2P — Maintainer Guide
 
+> **Other guides:** [Playing](PLAYING.md) (players) · [Hosting](HOSTING.md) (tunnels) ·
+> [Deploying](DEPLOYING.md) (production). This page is for working on the code itself.
+
 ## Prerequisites
 
 | Tool    | Minimum Version      | Notes                                                                |
@@ -46,16 +49,18 @@ pnpm build
 
 ## Commands
 
-| Command                      | Description                                            |
-| ---------------------------- | ------------------------------------------------------ |
-| `pnpm dev`                   | Start Astro dev server (<http://localhost:4321>)       |
-| `pnpm build`                 | Build static site to `dist/`                           |
-| `pnpm preview`               | Preview built site locally                             |
-| `pnpm server`                | Serve `dist/` and `/signaling` on port 4321            |
-| `pnpm tunnel:install:zrok`   | Install project-local zrok2 with checksum verification |
-| `pnpm tunnel:uninstall:zrok` | Remove project-local zrok2                             |
-| `pnpm tunnel:zrok`           | Build, serve, and open a zrok tunnel                   |
-| `pnpm tunnel:ngrok`          | Build, serve, and open an ngrok tunnel                 |
+| Command                      | Description                                               |
+| ---------------------------- | --------------------------------------------------------- |
+| `pnpm dev`                   | Start Astro dev server (<http://localhost:4321>)          |
+| `pnpm build`                 | Build static site to `dist/`                              |
+| `pnpm preview`               | Preview built site locally                                |
+| `pnpm server`                | Serve `dist/` and `/signaling` on port 4321               |
+| `pnpm tunnel:setup`          | Guided, interactive tunnel setup (install, sign in, host) |
+| `pnpm tunnel:doctor`         | Health check: Node, pnpm, build, port, tunnel readiness   |
+| `pnpm tunnel:install:zrok`   | Install project-local zrok2 with checksum verification    |
+| `pnpm tunnel:uninstall:zrok` | Remove project-local zrok2                                |
+| `pnpm tunnel:zrok`           | Build, serve, and open a zrok tunnel                      |
+| `pnpm tunnel:ngrok`          | Build, serve, and open an ngrok tunnel                    |
 
 ### Local production-style run
 

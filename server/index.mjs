@@ -7,7 +7,7 @@ import { createServer } from 'http';
 const PORT = Number(process.env.PORT || 4321);
 const DIST_DIR = resolve(process.env.DIST_DIR || 'dist');
 const CODE_LENGTH = 6;
-const STALE_TIMEOUT = 60_000;
+const HEARTBEAT_INTERVAL = 30_000;
 const SIGNALING_PATH = '/signaling';
 
 const CONTENT_TYPES = new Map([
@@ -102,19 +102,28 @@ server.listen(PORT, () => {
   console.log(`Signaling endpoint: ws://localhost:${PORT}${SIGNALING_PATH}`);
 });
 
-// Cleanup stale rooms periodically
-setInterval(() => {
-  const now = Date.now();
-  for (const [code, room] of rooms) {
-    if (now - room.lastActivity > STALE_TIMEOUT) {
-      room.hostWs?.close(1001, 'Room stale');
-      room.guestWs?.close(1001, 'Room stale');
-      rooms.delete(code);
+// WebSocket heartbeat: ping every client periodically and terminate any that
+// stop responding. Reaping a dead socket fires its 'close' handler, which
+// deletes the associated room. This keeps a waiting host's room alive for as
+// long as the tab stays open, and prevents idle-connection drops through the
+// tunnel (zrok/ngrok close idle WebSockets after ~60s).
+const heartbeat = setInterval(() => {
+  for (const ws of wss.clients) {
+    if (ws.isAlive === false) {
+      ws.terminate();
+      continue;
     }
+    ws.isAlive = false;
+    ws.ping();
   }
-}, 30_000);
+}, HEARTBEAT_INTERVAL);
 
 wss.on('connection', (ws) => {
+  ws.isAlive = true;
+  ws.on('pong', () => {
+    ws.isAlive = true;
+  });
+
   ws.on('message', (data) => {
     let msg;
     try {
@@ -129,18 +138,9 @@ wss.on('connection', (ws) => {
         const room = { hostWs: ws, guestWs: null, lastActivity: Date.now() };
         rooms.set(code, room);
 
-        room.joinTimeout = setTimeout(() => {
-          if (!room.guestWs) {
-            room.hostWs.send(
-              JSON.stringify({
-                type: 'game-expired',
-                code,
-              })
-            );
-            rooms.delete(code);
-          }
-        }, 30_000);
-
+        // No join timeout: the room lives as long as the host stays connected.
+        // Dead host sockets are reaped by the heartbeat, whose 'close' handler
+        // cleans up the room.
         ws.send(
           JSON.stringify({
             type: 'game-created',
@@ -163,7 +163,6 @@ wss.on('connection', (ws) => {
           return;
         }
 
-        clearTimeout(room.joinTimeout);
         room.guestWs = ws;
         room.lastActivity = Date.now();
 
@@ -208,7 +207,6 @@ wss.on('connection', (ws) => {
         if (other && other.readyState === other.OPEN) {
           other.send(JSON.stringify({ type: 'opponent-disconnected' }));
         }
-        clearTimeout(room.joinTimeout);
         rooms.delete(code);
       }
     }
@@ -221,6 +219,7 @@ wss.on('listening', () => {
 
 process.on('SIGINT', () => {
   console.log('Shutting down signaling server...');
+  clearInterval(heartbeat);
   for (const [, room] of rooms) {
     room.hostWs?.close();
     room.guestWs?.close();

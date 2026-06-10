@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { GRID_SIZE, SHIP_TYPES, CELL, Board, Ship } from './board.js';
+import { GRID_SIZE, SHIP_TYPES, CELL, Board, Ship } from '../../public/scripts/board.js';
 
 describe('constants', () => {
   it('GRID_SIZE should be 12', () => {

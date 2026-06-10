@@ -66,34 +66,36 @@ pnpm server         # &#x1F50D;  http://localhost:4321 with /signaling WebSocket
 
 Open two browser tabs, create a game in one, join with the code in the other. **Done.** &#x1F389;
 
-### LAN Tunnels
+### Host friends over a tunnel
+
+Want a friend on another computer to join? Run the guided setup — it picks a tunnel, signs
+you in, and opens one public link to share:
 
 ```bash
-# Install a project-local, checksum-verified zrok2 binary
-pnpm tunnel:install:zrok
+pnpm tunnel:setup        # interactive: pick zrok/ngrok, install, sign in, host
+pnpm tunnel:doctor       # friendly "is everything ready?" health check
+```
 
-# Build, start the local server, and open a zrok tunnel
-pnpm tunnel:zrok
+Prefer to do it by hand?
 
-# Remove the project-local zrok2 install
-pnpm tunnel:uninstall:zrok
+```bash
+pnpm tunnel:install:zrok        # project-local, checksum-verified
+.tools/bin/zrok2 enable <token> # one-time sign-in (see the Hosting guide)
+pnpm tunnel:zrok                # build, serve, and open a zrok tunnel
 
-# ngrok: installs system-wide at user scope (see the User Guide for scope details)
-pnpm tunnel:install:ngrok
+pnpm tunnel:install:ngrok       # system-wide via your OS package manager
+ngrok config add-authtoken <token>
 pnpm tunnel:ngrok
-pnpm tunnel:uninstall:ngrok
 ```
 
 > `zrok` installs project-local into `.tools/` (checksum-verified); `ngrok` installs
-> system-wide via your OS package manager. See the [User Guide](docs/USER-GUIDE.md#lan-party-tunneling)
-> for why, and for authtoken setup.
+> system-wide via your OS package manager. The **[Hosting guide](docs/HOSTING.md)** explains
+> why, where to get a free token, and how to troubleshoot.
 
-Windows users can run the PowerShell helper directly:
+Windows users run the PowerShell helper directly:
 
 ```powershell
-.\scripts\tunnel-setup.pwsh install zrok -Scope project
-.\scripts\tunnel-setup.pwsh run zrok
-.\scripts\tunnel-setup.pwsh uninstall zrok -Scope project
+.\scripts\tunnel-setup.pwsh setup
 ```
 
 ---
@@ -116,8 +118,12 @@ Browser (Player 1)  <──────── WebRTC P2P ───────�
 
 ## 📚 Documentation
 
-- **[🧑‍💻 User Guide](docs/USER-GUIDE.md)** — How to play, game modes, troubleshooting, and LAN tunneling with zrok/ngrok.
-- **[🔧 Maintainer Docs](docs/MAINTAINERS.md)** — Project setup, architecture overview, testing, and release process.
+Start at the **[Guide index](docs/USER-GUIDE.md)** — it routes you by what you want to do:
+
+- **[🎮 Playing](docs/PLAYING.md)** — a friend sent you a link or a code. Zero setup, just a browser.
+- **[🎉 Hosting](docs/HOSTING.md)** — invite friends to play online. Run `pnpm tunnel:setup` and it walks you through everything.
+- **[🚀 Deploying](docs/DEPLOYING.md)** — put the game on a real web address (static `dist/` + `/signaling`).
+- **[🔧 Maintainer Docs](docs/MAINTAINERS.md)** — project setup, architecture overview, testing, and release process.
 
 ---
 
@@ -141,7 +147,8 @@ pnpm dev          # &#x1F3B2;&#xFE0F;  Astro dev server
 pnpm build        # &#x1F4E6;  production bundle
 pnpm preview      # &#x1F440;  local preview of build
 pnpm server       # &#x1F50D;  static site + /signaling WebSocket
-pnpm tunnel:doctor
+pnpm tunnel:setup             # &#x1F9ED;  guided: pick a tunnel, sign in, host
+pnpm tunnel:doctor            # &#x1FA7A;  health check: is everything ready to host?
 pnpm tunnel:install:zrok      # project-local, checksum-verified
 pnpm tunnel:uninstall:zrok
 pnpm tunnel:install:ngrok     # system-wide (user scope, via package manager)
