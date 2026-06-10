@@ -79,12 +79,7 @@ impl RoomStore {
 
     /// Long-poll: wait up to `timeout_ms` for messages with seq >= `from_seq`.
     /// Returns None if the room does not exist.
-    pub fn poll(
-        &self,
-        code: &str,
-        from_seq: u64,
-        timeout_ms: u64,
-    ) -> Option<Vec<(u64, Value)>> {
+    pub fn poll(&self, code: &str, from_seq: u64, timeout_ms: u64) -> Option<Vec<(u64, Value)>> {
         let room = {
             let rooms = self.rooms.lock().unwrap();
             rooms.get(code).cloned()
@@ -133,7 +128,7 @@ impl RoomStore {
 
     fn gen_code() -> String {
         let mut buf = [0u8; 3];
-        getrandom::getrandom(&mut buf).expect("getrandom failed");
+        getrandom::fill(&mut buf).expect("getrandom failed");
         format!("{:02x}{:02x}{:02x}", buf[0], buf[1], buf[2])
     }
 }

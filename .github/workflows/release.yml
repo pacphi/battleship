@@ -42,7 +42,7 @@ jobs:
           cd ..
 
       - name: Upload web artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: web-artifact
           path: |
@@ -81,7 +81,7 @@ jobs:
           targets: ${{ env.COG_TARGET }}
 
       - name: Cache Cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
@@ -108,7 +108,7 @@ jobs:
           cp cogs/battleship/cog.toml cog-battleship.cog.toml
 
       - name: Upload cog artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cog-artifact
           path: |
@@ -122,12 +122,12 @@ jobs:
     needs: [build-web, build-cog]
     steps:
       - name: Download web artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: web-artifact
 
       - name: Download cog artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: cog-artifact
 
@@ -140,7 +140,7 @@ jobs:
             > checksums.txt
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             battleship-p2p-${{ github.ref_name }}.zip

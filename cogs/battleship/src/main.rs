@@ -18,35 +18,31 @@ use signal::RoomStore;
 // ---------------------------------------------------------------------------
 
 fn main() {
-    let token = env::var("COGNITUM_COG_TOKEN")
-        .expect("COGNITUM_COG_TOKEN env var must be set");
+    let token = env::var("COGNITUM_COG_TOKEN").expect("COGNITUM_COG_TOKEN env var must be set");
 
     // Substitute the build-time placeholder with the real runtime token once at
     // startup so every HTML serve is a cheap clone, not a per-request allocation.
     let render_html = |asset_path: &str| -> Arc<Vec<u8>> {
-        let bytes = get_asset(asset_path)
-            .map(|(_, b)| b)
-            .unwrap_or_default();
+        let bytes = get_asset(asset_path).map(|(_, b)| b).unwrap_or_default();
         let substituted = String::from_utf8_lossy(bytes)
             .replace("__COG_TOKEN__", &token)
             .into_bytes();
         Arc::new(substituted)
     };
     let index_html = render_html("/");
-    let game_html  = render_html("/game");
+    let game_html = render_html("/game");
 
     let store = Arc::new(RoomStore::new());
 
-    let server = Server::http("127.0.0.1:8073")
-        .expect("failed to bind 127.0.0.1:8073");
+    let server = Server::http("127.0.0.1:8073").expect("failed to bind 127.0.0.1:8073");
 
     eprintln!("cog-battleship listening on 127.0.0.1:8073");
 
     for request in server.incoming_requests() {
-        let token      = token.clone();
-        let store      = Arc::clone(&store);
+        let token = token.clone();
+        let store = Arc::clone(&store);
         let index_html = Arc::clone(&index_html);
-        let game_html  = Arc::clone(&game_html);
+        let game_html = Arc::clone(&game_html);
         std::thread::spawn(move || {
             handle(request, &token, &store, &index_html, &game_html);
         });
@@ -57,7 +53,13 @@ fn main() {
 // Router
 // ---------------------------------------------------------------------------
 
-fn handle(mut req: Request, token: &str, store: &Arc<RoomStore>, index_html: &[u8], game_html: &[u8]) {
+fn handle(
+    mut req: Request,
+    token: &str,
+    store: &Arc<RoomStore>,
+    index_html: &[u8],
+    game_html: &[u8],
+) {
     let method = req.method().clone();
     let url = req.url().to_owned();
 
@@ -162,11 +164,7 @@ fn handle(mut req: Request, token: &str, store: &Arc<RoomStore>, index_html: &[u
                             );
                         }
                         None => {
-                            return json_response(
-                                req,
-                                404,
-                                json!({"error": "room not found"}),
-                            );
+                            return json_response(req, 404, json!({"error": "room not found"}));
                         }
                     }
                 }
@@ -192,7 +190,12 @@ fn handle(mut req: Request, token: &str, store: &Arc<RoomStore>, index_html: &[u
 
 fn check_auth(req: &Request, token: &str) -> bool {
     for header in req.headers() {
-        if header.field.as_str().as_bytes().eq_ignore_ascii_case(b"authorization") {
+        if header
+            .field
+            .as_str()
+            .as_bytes()
+            .eq_ignore_ascii_case(b"authorization")
+        {
             let val = header.value.as_str();
             if let Some(bearer) = val.strip_prefix("Bearer ") {
                 return bearer.as_bytes().ct_eq(token.as_bytes()).into();
@@ -210,13 +213,7 @@ fn json_response(req: Request, status: u16, body: Value) {
     let body_str = body.to_string();
     let response = Response::from_string(body_str)
         .with_status_code(StatusCode(status))
-        .with_header(
-            Header::from_bytes(
-                &b"Content-Type"[..],
-                &b"application/json"[..],
-            )
-            .unwrap(),
-        );
+        .with_header(Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap());
     let _ = req.respond(response);
 }
 
@@ -239,11 +236,7 @@ fn asset_response(req: Request, path: &str) {
             let response = Response::from_data(bytes.to_vec())
                 .with_status_code(StatusCode(200))
                 .with_header(
-                    Header::from_bytes(
-                        &b"Content-Type"[..],
-                        content_type.as_bytes(),
-                    )
-                    .unwrap(),
+                    Header::from_bytes(&b"Content-Type"[..], content_type.as_bytes()).unwrap(),
                 );
             let _ = req.respond(response);
         }

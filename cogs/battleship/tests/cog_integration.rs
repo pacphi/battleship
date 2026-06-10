@@ -4,11 +4,9 @@
 /// the server startup inline) against an ephemeral port and exercise each
 /// endpoint over raw HTTP/1.1 TCP connections.
 ///
-/// SECURITY NOTE: gen_code() in signal.rs derives the room code from
-/// SystemTime nanos XOR pid — NOT cryptographically secure.  A collision or
-/// brute-force attack against the 24-bit keyspace is feasible.  The reviewer
-/// should flag this; getrandom (or the rand crate with OsRng) should be used
-/// instead.
+/// SECURITY NOTE: gen_code() in signal.rs derives room codes from the operating
+/// system CSPRNG via getrandom. The 24-bit room code space is still intentionally
+/// small for usability, so bearer-token protection remains important.
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::thread;
@@ -120,8 +118,7 @@ mod server {
                     (Method::Post, "push") => {
                         let mut body = String::new();
                         let _ = req.as_reader().read_to_string(&mut body);
-                        let payload: Value =
-                            serde_json::from_str(&body).unwrap_or(Value::Null);
+                        let payload: Value = serde_json::from_str(&body).unwrap_or(Value::Null);
                         if store.push_message(&code, payload) {
                             return json_resp(req, 200, json!({"ok": true}));
                         } else {
@@ -142,17 +139,12 @@ mod server {
                                 return no_content(req);
                             }
                             Some(msgs) => {
-                                let next =
-                                    msgs.last().map(|(s, _)| s + 1).unwrap_or(from_seq);
+                                let next = msgs.last().map(|(s, _)| s + 1).unwrap_or(from_seq);
                                 let arr: Vec<Value> = msgs
                                     .into_iter()
                                     .map(|(s, v)| json!({"seq": s, "payload": v}))
                                     .collect();
-                                return json_resp(
-                                    req,
-                                    200,
-                                    json!({"messages": arr, "seq": next}),
-                                );
+                                return json_resp(req, 200, json!({"messages": arr, "seq": next}));
                             }
                         }
                     }
@@ -372,7 +364,10 @@ fn test_room_lifecycle() {
 
     // Act 2 — join room
     let join = http_post(port, &format!("/signal/{}/join", code), "{}", Some(TOKEN));
-    assert_eq!(join.status, 200, "POST /signal/{{code}}/join should return 200");
+    assert_eq!(
+        join.status, 200,
+        "POST /signal/{{code}}/join should return 200"
+    );
 
     // Act 3 — push message
     let push = http_post(
@@ -381,16 +376,25 @@ fn test_room_lifecycle() {
         r#"{"type":"offer","sdp":"v=0"}"#,
         Some(TOKEN),
     );
-    assert_eq!(push.status, 200, "POST /signal/{{code}}/push should return 200");
+    assert_eq!(
+        push.status, 200,
+        "POST /signal/{{code}}/push should return 200"
+    );
 
     // Act 4 — poll for messages
     let poll = http_get(port, &format!("/signal/{}/poll?seq=0", code), Some(TOKEN));
-    assert_eq!(poll.status, 200, "GET /signal/{{code}}/poll should return 200 when messages exist");
+    assert_eq!(
+        poll.status, 200,
+        "GET /signal/{{code}}/poll should return 200 when messages exist"
+    );
     let poll_json: Value = serde_json::from_str(&poll.body).expect("poll body must be JSON");
     let messages = poll_json["messages"]
         .as_array()
         .expect("poll response must have 'messages' array");
-    assert!(!messages.is_empty(), "messages must not be empty after push");
+    assert!(
+        !messages.is_empty(),
+        "messages must not be empty after push"
+    );
     assert_eq!(
         messages[0]["payload"]["type"], "offer",
         "first message payload must match the pushed offer"
@@ -398,7 +402,10 @@ fn test_room_lifecycle() {
 
     // Act 5 — leave room
     let leave = http_post(port, &format!("/signal/{}/leave", code), "{}", Some(TOKEN));
-    assert_eq!(leave.status, 200, "POST /signal/{{code}}/leave should return 200");
+    assert_eq!(
+        leave.status, 200,
+        "POST /signal/{{code}}/leave should return 200"
+    );
 }
 
 // ── Poll timeout test ─────────────────────────────────────────────────────
@@ -468,7 +475,10 @@ fn test_poll_returns_on_push() {
     let elapsed = start.elapsed();
 
     // Assert
-    assert_eq!(poll.status, 200, "poll should return 200 when a message arrives");
+    assert_eq!(
+        poll.status, 200,
+        "poll should return 200 when a message arrives"
+    );
     let poll_json: Value = serde_json::from_str(&poll.body).expect("poll body must be JSON");
     let messages = poll_json["messages"]
         .as_array()
