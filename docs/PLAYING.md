@@ -8,7 +8,9 @@
 ## What you need
 
 - A modern browser: Chrome, Firefox, Edge, or Safari.
-- The **game link** (a web address someone shared with you).
+- The **game link** (a web address someone shared with you). If you're playing on a
+  Cognitum One Seed device, the link comes from the Seed dashboard — it looks different
+  from a tunnel link, but works the same way.
 - The **6-character code** from whoever you're playing against.
 
 That's everything. There's nothing to download and no sign-up.

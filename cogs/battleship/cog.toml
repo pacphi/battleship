@@ -1,0 +1,70 @@
+[cog]
+id = "battleship"
+name = "Battleship"
+version = "0.1.0"
+category = "games"
+description = "Multiplayer Battleship game with HTTP-based signaling for P2P WebRTC"
+binary = "cog-battleship"
+hardware_requirement = "pi-zero-2w"
+
+[api]
+bind_loopback_only = true
+
+[[api.endpoints]]
+method = "GET"
+path = "/health"
+open = true
+description = "Health check"
+
+[[api.endpoints]]
+method = "GET"
+path = "/"
+open = true
+description = "Serve index.html"
+
+[[api.endpoints]]
+method = "GET"
+path = "/game"
+open = true
+description = "Serve game.html"
+
+[[api.endpoints]]
+method = "GET"
+path = "/scripts/{file}"
+open = true
+description = "Serve static assets"
+
+[[api.endpoints]]
+method = "POST"
+path = "/signal/create"
+open = false
+paired = true
+description = "Create a new signaling room"
+
+[[api.endpoints]]
+method = "POST"
+path = "/signal/{code}/join"
+open = false
+paired = true
+description = "Join an existing signaling room"
+
+[[api.endpoints]]
+method = "POST"
+path = "/signal/{code}/push"
+open = false
+paired = true
+description = "Push a message to a signaling room"
+
+[[api.endpoints]]
+method = "GET"
+path = "/signal/{code}/poll"
+open = false
+paired = true
+description = "Long-poll for new messages in a signaling room"
+
+[[api.endpoints]]
+method = "POST"
+path = "/signal/{code}/leave"
+open = false
+paired = true
+description = "Leave a signaling room"

@@ -1,0 +1,23 @@
+cargo:rerun-if-changed=../../src
+cargo:rerun-if-changed=../../dist
+Already up to date
+Done in 37ms using pnpm v11.0.0
+09:02:50 [types] Generated 14ms
+09:02:50 [build] output: "static"
+09:02:50 [build] mode: "static"
+09:02:50 [build] directory: /Users/cphillipson/Development/active/ai/battleship/dist/
+09:02:50 [build] Collecting build info...
+09:02:50 [build] ✓ Completed in 20ms.
+09:02:50 [build] Building static entrypoints...
+09:02:50 [vite] ✓ built in 386ms
+09:02:50 [vite] ✓ built in 5ms
+09:02:50 [build] Rearranging server assets...
+
+ generating static routes 
+09:02:50   ├─ /game.html (+3ms) 
+09:02:50   ├─ /index.html (+1ms) 
+09:02:50 ✓ Completed in 10ms.
+
+09:02:50 [build] ✓ Completed in 419ms.
+09:02:50 [build] 2 page(s) built in 440ms
+09:02:50 [build] Complete!

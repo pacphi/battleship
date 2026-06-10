@@ -1,0 +1,46 @@
+version: 2
+
+updates:
+  # ── GitHub Actions ──────────────────────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: UTC
+    groups:
+      github-actions:
+        patterns:
+          - '*'
+
+  # ── Node / pnpm (root) ──────────────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: UTC
+    groups:
+      node-runtime:
+        dependency-type: production
+        patterns:
+          - '*'
+      node-dev:
+        dependency-type: development
+        patterns:
+          - '*'
+
+  # ── Rust / Cargo (Seed cog) ─────────────────────────────────────────────────
+  - package-ecosystem: cargo
+    directory: /cogs/battleship
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: UTC
+    groups:
+      cargo-deps:
+        patterns:
+          - '*'

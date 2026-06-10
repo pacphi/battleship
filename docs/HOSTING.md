@@ -6,6 +6,9 @@ computers — at a LAN party, across the house, or across the world.
 You'll use a terminal a little, but the **guided setup walks you through every step**, so
 you don't need to know what any of it means.
 
+> **Have a Cognitum One Seed device?** It can host the game natively — no tunnel, no
+> laptop required. See **[Hosting on a Seed](SEED.md)** instead.
+
 ---
 
 ## First, the big picture

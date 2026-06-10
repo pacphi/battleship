@@ -124,7 +124,8 @@ Start at the **[Guide index](docs/USER-GUIDE.md)** — it routes you by what you
 
 - **[🎮 Playing](docs/PLAYING.md)** — a friend sent you a link or a code. Zero setup, just a browser.
 - **[🎉 Hosting](docs/HOSTING.md)** — invite friends to play online. Run `pnpm tunnel:setup` and it walks you through everything.
-- **[🚀 Deploying](docs/DEPLOYING.md)** — put the game on a real web address (static `dist/` + `/signaling`).
+- **[🚀 Deploying](docs/DEPLOYING.md)** — put the game on a real web address (static `dist/` + signaling).
+- **[🌱 Seed](docs/SEED.md)** — run the game natively on a Cognitum One Seed device as a self-contained Rust cog.
 - **[🔧 Maintainer Docs](docs/MAINTAINERS.md)** — project setup, architecture overview, testing, and release process.
 
 ---
@@ -192,6 +193,7 @@ Deploy the static `dist/` folder to **any** static hosting provider and run `ser
 - &#x2699;&#xFE0F; **Netlify / Vercel** — connect repo, build cmd: `pnpm build`
 - &#x2601;&#xFE0F; **Cloudflare Pages** — same build command
 - &#x2744;&#xFE0F; **S3 + CloudFront** — upload `dist/` as a static website
+- &#x1F331; **Cognitum One Seed** — build the Rust cog (`cross build --release`) and register it on the device; no Node.js required
 
 For LAN parties and demos, `pnpm server` serves both the static build and signaling on one port.
 

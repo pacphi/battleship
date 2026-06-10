@@ -9,6 +9,7 @@ permissions:
 
 env:
   NODE_VERSION: '26'
+  RUST_TOOLCHAIN: stable
 
 jobs:
   check:
@@ -33,3 +34,46 @@ jobs:
       - run: pnpm run format:check
       - run: pnpm run test
       - run: pnpm run build
+
+      - name: Upload dist for cog-check
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 1
+
+  cog-check:
+    name: Cog · cargo check
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download dist
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            cogs/battleship/target
+          key: cargo-check-${{ hashFiles('cogs/battleship/Cargo.lock') }}
+          restore-keys: cargo-check-
+
+      # build.rs runs during cargo check; it skips pnpm build because dist/ is present.
+      - name: cargo check (all targets including tests)
+        run: cargo check --manifest-path cogs/battleship/Cargo.toml --tests
+        env:
+          # build.rs writes to src/assets.rs — suppress the "file already exists" noise
+          # and ensure the check sees the right dist/ path from the repo root.
+          CARGO_TERM_COLOR: always
