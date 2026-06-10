@@ -131,6 +131,25 @@
       // Initialize game flow
       const gameFlow = new GameFlow(game, webrtc);
 
+      // End-of-game handling. Show-once so the winner's local detection, the
+      // broadcast game-over message, and the loser's own resolveTurns can't
+      // stack overlays.
+      let gameOverShown = false;
+      function finishGame(winner) {
+        if (gameOverShown) return;
+        gameOverShown = true;
+        game.phase = PHASE.FINISHED;
+        game.winner = winner;
+        gameFlow.destroy();
+        const iWon = winner === playerId;
+        showOverlay(
+          iWon ? 'Victory!' : 'Defeat!',
+          iWon ? 'You sunk the enemy fleet!' : 'Your fleet was sunk.',
+          'Play Again'
+        );
+      }
+      gameFlow.onGameOver = (winner) => finishGame(winner);
+
       webrtc.onMessage = (msg) => {
         switch (msg.type) {
           case 'fleet-ready':
@@ -159,16 +178,15 @@
                 game.addMessage(`Your ${result.ship.name} was sunk!`);
               }
             }
+            // resolveTurns flips us to FINISHED (with the opponent as winner)
+            // when our last ship goes down — surface the Defeat overlay.
+            if (game.phase === PHASE.FINISHED) {
+              finishGame(game.winner);
+            }
             break;
 
           case 'game-over':
-            game.phase = PHASE.FINISHED;
-            game.winner = msg.winner;
-            showOverlay(
-              msg.winner === playerId ? 'Victory!' : 'Defeat!',
-              msg.winner === playerId ? 'You sunk the enemy fleet!' : 'Your fleet was sunk.',
-              'Play Again'
-            );
+            finishGame(msg.winner);
             break;
 
           case 'opponent-disconnected':

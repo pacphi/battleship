@@ -1,4 +1,4 @@
-import { Board, GRID_SIZE } from './board.js';
+import { Board, Ship, GRID_SIZE } from './board.js';
 
 export const PHASE = {
   WAITING: 'waiting',
@@ -33,19 +33,32 @@ export class Game {
   receiveOpponentState(state) {
     this.enemyBoard.shotResults = state.shotResults || {};
     this.enemyBoard.shots = new Set(Object.keys(state.shotResults || {}));
-    this.enemyBoard.ships = state.ships.map((s) => ({
-      id: s.id,
-      row: s.row,
-      col: s.col,
-      vertical: s.vertical,
-      sunk: s.sunk,
-      hidden: s.hidden,
-      name: s.name,
-      symbol: s.symbol,
-      size: s.size,
-      hits: s.hits,
-      canShift: false,
-    }));
+    // Rebuild as real Ship instances so enemyBoard.fire() (which relies on
+    // Ship.isCellAt / Ship.takeHit) can resolve our shots locally and let us
+    // detect when the enemy fleet is fully sunk.
+    this.enemyBoard.ships = (state.ships || []).map((s) => {
+      const ship = new Ship(
+        { name: s.name, size: s.size, symbol: s.symbol },
+        s.id,
+        s.row,
+        s.col,
+        s.vertical
+      );
+      ship.hits = s.hits || 0;
+      ship.sunk = !!s.sunk;
+      ship.hidden = !!s.hidden;
+      ship.canShift = false;
+      return ship;
+    });
+    // Mark ship cells on the enemy grid for consistency with fire().
+    this.enemyBoard.grid = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(0));
+    for (const ship of this.enemyBoard.ships) {
+      for (const c of ship.getCells()) {
+        if (c.row >= 0 && c.row < GRID_SIZE && c.col >= 0 && c.col < GRID_SIZE) {
+          this.enemyBoard.grid[c.row][c.col] = 1;
+        }
+      }
+    }
   }
 
   fireTarget(row, col) {
@@ -65,8 +78,9 @@ export class Game {
     }
     const remaining = this.shipsRemaining[this.playerId];
     if (remaining === 0) {
+      // Our own fleet was wiped out — the opponent is the winner, not us.
       this.phase = PHASE.FINISHED;
-      this.winner = this.playerId;
+      this.winner = this.playerId === 1 ? 2 : 1;
     }
   }
 

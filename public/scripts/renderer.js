@@ -119,6 +119,9 @@ export class Renderer {
     this.animFrame = 0;
     this.hitEffects = [];
     this.missEffects = [];
+    // Cells whose one-shot sink ripple has already been spawned, so the
+    // animation fires once instead of every render frame.
+    this.sinkAnimated = new Set();
   }
 
   setSize() {
@@ -186,7 +189,11 @@ export class Renderer {
         this._drawMiss(x, y, cs);
       } else if (shotResult === 'sink') {
         this._drawHit(x, y, cs);
-        this.hitEffects.push({ x, y, cs, t: Date.now(), type: 'sink' });
+        const key = `${row},${col}`;
+        if (!this.sinkAnimated.has(key)) {
+          this.sinkAnimated.add(key);
+          this.hitEffects.push({ x, y, cs, t: Date.now(), type: 'sink' });
+        }
       }
     }
   }
@@ -255,9 +262,17 @@ export class Renderer {
     ctx.lineTo(x + cs * 0.2, y + cs * 0.8);
     ctx.stroke();
 
+    // A small, contained amber glow centred on the cell — fades to transparent
+    // well within the cell so hits read as crisp markers rather than a wash
+    // that bleeds across the whole fleet.
     const now = Date.now();
-    const glow = Math.sin(((now % 1000) / 1000) * Math.PI) * 0.3;
-    ctx.fillStyle = `rgba(255,176,0,${glow})`;
+    const pulse = 0.1 + Math.sin(((now % 1000) / 1000) * Math.PI) * 0.1;
+    const cx = x + cs / 2;
+    const cy = y + cs / 2;
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, cs * 0.4);
+    grad.addColorStop(0, `rgba(255,176,0,${pulse})`);
+    grad.addColorStop(1, 'rgba(255,176,0,0)');
+    ctx.fillStyle = grad;
     ctx.fillRect(x, y, cs, cs);
   }
 
