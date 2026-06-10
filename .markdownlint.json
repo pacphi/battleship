@@ -5,8 +5,8 @@
   "MD041": false,
   "MD040": false,
   "MD033": {
-    "allowed_elements": ["a"]
-  },
+    "allowed_elements": ["a", "img"]
+  }, // allow <a><img></a> for clickable, width-controlled thumbnails (docs/SCREENSHOTS.md)
   "MD024": {
     "siblings_only": true
   }, // allow repeated subsections (e.g. Setup/Uninstall) under different parents

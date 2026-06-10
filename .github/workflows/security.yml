@@ -1,0 +1,35 @@
+name: Security Audit
+
+# Dependency vulnerability scan via `pnpm audit`. Pulled out of the per-push CI
+# gate so a freshly-published advisory can't fail an unrelated PR — instead it
+# surfaces here on a weekly cron (and on demand). A red run means a dependency
+# has a known vulnerability to triage.
+on:
+  schedule:
+    - cron: '23 4 * * 1' # Mondays 04:23 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '26'
+
+jobs:
+  audit:
+    name: pnpm audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit
