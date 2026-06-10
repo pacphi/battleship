@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Game, PHASE } from './game.js';
+import { Game, PHASE } from '../../public/scripts/game.js';
 
 describe('PHASE', () => {
   it('defines all phases', () => {

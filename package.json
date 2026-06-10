@@ -17,6 +17,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "server": "node server/index.mjs",
+    "tunnel:setup": "scripts/tunnel-setup.sh setup",
     "tunnel:doctor": "scripts/tunnel-setup.sh doctor",
     "tunnel:install:zrok": "scripts/tunnel-setup.sh install zrok --scope project",
     "tunnel:uninstall:zrok": "scripts/tunnel-setup.sh uninstall zrok --scope project",

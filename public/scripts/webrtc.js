@@ -79,6 +79,9 @@ export class WebRTCManager {
         break;
 
       case 'guest-joined':
+        // The guest is now present on the server, so its relay target exists.
+        // Only now is it safe for the host to send the offer.
+        this._makeOffer();
         break;
 
       case 'opponent-disconnected':
@@ -98,6 +101,7 @@ export class WebRTCManager {
   }
 
   _initPeer(isHost) {
+    this._connected = false;
     this.pc = new RTCPeerConnection(RTC_CONFIG);
 
     this.pc.onicecandidate = (e) => {
@@ -113,40 +117,45 @@ export class WebRTCManager {
       }
     };
 
+    // Note: 'connected' is fired from the data channel's 'open' event, not
+    // here — the peer connection can report 'connected' before the channel is
+    // open, and send() silently drops messages on a not-yet-open channel (which
+    // would lose the opening fleet-ready exchange).
     this.pc.onconnectionstatechange = () => {
       const state = this.pc.connectionState;
-      if (state === 'connected') {
-        this.onStateChange?.('connected');
-      } else if (state === 'disconnected' || state === 'failed') {
+      if (state === 'disconnected' || state === 'failed') {
         this.onStateChange?.('p2p-lost');
       }
     };
 
     if (isHost) {
+      // The data channel must exist before the offer is created, but the offer
+      // itself is deferred until the guest joins (see 'guest-joined' →
+      // _makeOffer). Sending it now would relay to a non-existent guest.
       this.dc = this.pc.createDataChannel('game');
       this._setupDataChannel();
-
-      this.pc
-        .createOffer()
-        .then((offer) => {
-          return this.pc.setLocalDescription(offer);
-        })
-        .then(() => {
-          this.ws.send(
-            JSON.stringify({
-              type: 'relay',
-              code: this.code,
-              data: JSON.stringify({ type: 'sdp', sdp: this.pc.localDescription }),
-              to: 'guest',
-            })
-          );
-        });
     }
 
     this.pc.ondatachannel = (e) => {
       this.dc = e.channel;
       this._setupDataChannel();
     };
+  }
+
+  async _makeOffer() {
+    if (!this.pc) return;
+    const offer = await this.pc.createOffer();
+    await this.pc.setLocalDescription(offer);
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(
+        JSON.stringify({
+          type: 'relay',
+          code: this.code,
+          data: JSON.stringify({ type: 'sdp', sdp: this.pc.localDescription }),
+          to: 'guest',
+        })
+      );
+    }
   }
 
   async _handleRTCMessage(data) {
@@ -183,7 +192,7 @@ export class WebRTCManager {
 
   _setupDataChannel() {
     this.dc.onopen = () => {
-      console.log('P2P data channel opened');
+      this._fireConnected();
     };
     this.dc.onclose = () => {
       this.onStateChange?.('p2p-lost');
@@ -192,6 +201,16 @@ export class WebRTCManager {
       const data = JSON.parse(e.data);
       this.onMessage?.(data);
     };
+    // The channel may already be open by the time we attach handlers.
+    if (this.dc.readyState === 'open') {
+      this._fireConnected();
+    }
+  }
+
+  _fireConnected() {
+    if (this._connected) return;
+    this._connected = true;
+    this.onStateChange?.('connected');
   }
 
   send(data) {

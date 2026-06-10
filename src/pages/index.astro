@@ -8,12 +8,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Battleship — Peer-to-Peer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/scripts/styles.css" />
   </head>
   <body>
     <div id="app" class="landing">
       <header class="landing-header">
-        <h1>&#9876; BATTLESHIP</h1>
+        <h1 class="cursor">&#9876; BATTLESHIP</h1>
         <p class="subtitle">Peer-to-Peer Multiplayer</p>
       </header>
 
@@ -47,7 +53,7 @@
         </div>
 
         <!-- Game Setup -->
-        <div id="game-setup" class="section" style="display:none;">
+        <div id="game-setup" class="section">
           <h2>Start a Game</h2>
 
           <div class="setup-actions">

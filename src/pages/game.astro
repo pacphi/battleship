@@ -8,6 +8,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Battleship — Battle</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/scripts/styles.css" />
   </head>
   <body>
@@ -80,7 +86,8 @@
       const webrtc = new WebRTCManager();
 
       // State display
-      let gameMode = 'round';
+      let gameMode = urlParams.get('mode') || 'round';
+      document.getElementById('mode-label').textContent = `Mode: ${gameMode}`;
 
       webrtc.onStateChange = (state, data) => {
         switch (state) {
@@ -104,13 +111,13 @@
             break;
           case 'p2p-lost':
             connStatus.textContent = 'P2P connection lost!';
-            connStatus.style.color = '#e74c3c';
+            connStatus.style.color = '#ff3b30';
             // Attempt ICE reconnect
             if (webrtc.pc) {
               webrtc.pc.oniceconnectionstatechange = () => {
                 if (webrtc.pc.iceConnectionState === 'connected') {
                   connStatus.textContent = 'P2P restored';
-                  connStatus.style.color = '#2ecc71';
+                  connStatus.style.color = '#2bff88';
                 }
               };
             }
@@ -168,6 +175,17 @@
             showOverlay('Opponent Disconnected', 'Your opponent left the game.', 'OK');
             break;
 
+          case 'join-failed':
+            waitingScreen.style.display = 'none';
+            showOverlay(
+              'Cannot Join',
+              msg.reason === 'invalid-code'
+                ? 'That game code is invalid or has expired.'
+                : 'That game is already full.',
+              'Back'
+            );
+            break;
+
           case 'mode-select':
             gameMode = msg.mode;
             document.getElementById('mode-label').textContent = `Mode: ${gameMode}`;
@@ -215,6 +233,17 @@
         overlay.style.display = 'none';
         window.location.href = '/';
       });
+
+      // Establish the connection now that all handlers are wired. The host
+      // (player 1) creates the room and the share code appears on the waiting
+      // screen; the guest (player 2) joins with the code from the URL. This
+      // connection lives here for the whole game — there is no further
+      // navigation to tear it down.
+      if (playerId === 1) {
+        webrtc.createGame();
+      } else {
+        webrtc.joinGame(urlParams.get('code') || '');
+      }
 
       // Main game loop
       let lastTime = 0;

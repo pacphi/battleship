@@ -1,0 +1,773 @@
+/* =====================================================================
+   BATTLESHIP // PHOSPHOR CRT TERMINAL THEME
+   Monochrome green-on-black (VT220 / IBM 5151) with amber alert accent.
+   ===================================================================== */
+
+:root {
+  --phosphor: #2bff88; /* primary bright phosphor green */
+  --phosphor-mid: #16c85f; /* mid green for secondary text */
+  --phosphor-dim: #0a7a3a; /* dim green for borders/labels */
+  --phosphor-faint: rgba(43, 255, 136, 0.12);
+  --amber: #ffb000; /* alert / hit / timer accent */
+  --amber-dim: #b87a00;
+  --alert: #ff3b30; /* defeat / critical */
+  --bg: #020a05; /* near-black green */
+  --bg-panel: rgba(43, 255, 136, 0.035);
+  --bg-panel-hi: rgba(43, 255, 136, 0.08);
+  --glow-sm: 0 0 2px rgba(43, 255, 136, 0.9);
+  --glow-md: 0 0 2px rgba(43, 255, 136, 0.9), 0 0 8px rgba(43, 255, 136, 0.45);
+  --glow-amber: 0 0 2px rgba(255, 176, 0, 0.95), 0 0 10px rgba(255, 176, 0, 0.5);
+  --scan: rgba(0, 0, 0, 0.28);
+  --font-term: 'VT323', 'Courier New', monospace;
+  --font-pixel: 'Press Start 2P', 'VT323', monospace;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scrollbar-color: var(--phosphor-dim) var(--bg);
+}
+
+body {
+  background: radial-gradient(ellipse 120% 90% at 50% 50%, #03150b 0%, var(--bg) 65%, #000301 100%);
+  color: var(--phosphor);
+  font-family: var(--font-term);
+  font-size: 20px;
+  line-height: 1.3;
+  letter-spacing: 0.5px;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  text-shadow: var(--glow-sm);
+  -webkit-font-smoothing: none;
+}
+
+/* === CRT overlays: scanlines + flicker + vignette (no markup needed) === */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 2px,
+      var(--scan) 3px,
+      var(--scan) 3px
+    ),
+    linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.04));
+  background-size:
+    100% 4px,
+    3px 100%;
+  mix-blend-mode: overlay;
+  animation: flicker 6s infinite steps(60);
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 100% 100% at 50% 50%,
+    transparent 60%,
+    rgba(0, 0, 0, 0.55) 100%
+  );
+}
+
+@keyframes flicker {
+  0%,
+  97%,
+  100% {
+    opacity: 0.55;
+  }
+  98% {
+    opacity: 0.4;
+  }
+  99% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes boot-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: brightness(2.5);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: brightness(1);
+  }
+}
+
+/* Blinking block cursor — a baseline-aligned bar sized like the next letter */
+.cursor::after {
+  content: '';
+  display: inline-block;
+  width: 0.62em;
+  height: 0.906em; /* matches Press Start 2P cap-ink height */
+  margin-left: 0.14em;
+  vertical-align: 0.109em; /* lift to the glyphs' ink bottom (they float above the baseline) */
+  background: var(--phosphor);
+  box-shadow:
+    0 0 4px var(--phosphor),
+    0 0 16px rgba(43, 255, 136, 0.5);
+  animation: blink 1.1s steps(1) infinite;
+}
+
+/* =====================================================================
+   STATUS BAR (game page)
+   ===================================================================== */
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 18px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--phosphor-dim);
+  font-size: 18px;
+  min-height: 44px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.status-bar span::before {
+  content: '> ';
+  color: var(--phosphor-dim);
+}
+
+.game-code {
+  background: var(--bg-panel-hi);
+  padding: 2px 10px;
+  border: 1px solid var(--phosphor-dim);
+  font-weight: bold;
+  letter-spacing: 3px;
+}
+.game-code::before {
+  content: '' !important;
+}
+
+.mode-label {
+  color: var(--phosphor-mid);
+}
+
+.timer {
+  color: var(--amber);
+  font-weight: bold;
+  font-size: 22px;
+  text-shadow: var(--glow-amber);
+}
+
+.message-area {
+  color: var(--phosphor-mid);
+  font-size: 16px;
+}
+
+/* =====================================================================
+   GAME BOARD
+   ===================================================================== */
+.game-board {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  gap: 48px;
+  padding: 24px;
+  flex-wrap: wrap;
+}
+
+.board-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.board-container h3 {
+  margin-bottom: 10px;
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  color: var(--phosphor-mid);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: var(--glow-sm);
+}
+
+.board-container h3::before {
+  content: '\2593\2592 ';
+  color: var(--phosphor-dim);
+}
+.board-container h3::after {
+  content: ' \2592\2593';
+  color: var(--phosphor-dim);
+}
+
+canvas {
+  border: 1px solid var(--phosphor-dim);
+  cursor: crosshair;
+  max-width: 100%;
+  max-height: calc(100vh - 150px);
+  box-shadow:
+    inset 0 0 40px rgba(43, 255, 136, 0.06),
+    0 0 16px rgba(43, 255, 136, 0.12);
+  image-rendering: pixelated;
+}
+
+/* =====================================================================
+   OVERLAY / MODALS
+   ===================================================================== */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 10, 5, 0.92);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+
+.overlay-content {
+  background: var(--bg);
+  padding: 44px 52px;
+  border: 1px solid var(--phosphor);
+  box-shadow: var(--glow-md);
+  text-align: center;
+  min-width: 320px;
+  position: relative;
+}
+
+.overlay-content::before {
+  content: '\250C\2500\2500 SYSTEM \2500\2500\2510';
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg);
+  padding: 0 8px;
+  font-size: 16px;
+  color: var(--phosphor-dim);
+  letter-spacing: 2px;
+}
+
+.overlay-content h2 {
+  font-family: var(--font-pixel);
+  font-size: 26px;
+  margin-bottom: 18px;
+  text-transform: uppercase;
+  text-shadow: var(--glow-md);
+}
+
+.overlay-content p {
+  margin-bottom: 26px;
+  color: var(--phosphor-mid);
+  font-size: 20px;
+}
+
+.overlay-content button {
+  background: transparent;
+  color: var(--phosphor);
+  border: 1px solid var(--phosphor);
+  padding: 10px 36px;
+  cursor: pointer;
+  font-family: var(--font-term);
+  font-size: 20px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: var(--glow-sm);
+  transition:
+    background 0.12s,
+    color 0.12s,
+    box-shadow 0.12s;
+}
+
+.overlay-content button:hover {
+  background: var(--phosphor);
+  color: var(--bg);
+  text-shadow: none;
+  box-shadow: var(--glow-md);
+}
+
+/* =====================================================================
+   WAITING SCREEN
+   ===================================================================== */
+.waiting-screen {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 10, 5, 0.94);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 50;
+}
+
+.waiting-content {
+  text-align: center;
+}
+
+.waiting-content h2 {
+  margin-bottom: 20px;
+  font-family: var(--font-pixel);
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.waiting-content h2::after {
+  content: '_';
+  animation: blink 1s steps(1) infinite;
+}
+
+.waiting-content p {
+  font-size: 30px;
+  letter-spacing: 8px;
+  border: 1px solid var(--phosphor-dim);
+  padding: 14px 26px;
+  display: inline-block;
+  background: var(--bg-panel-hi);
+}
+
+/* Don't render the bordered box until a share code is present */
+.waiting-content p:empty {
+  display: none;
+}
+
+/* =====================================================================
+   LANDING PAGE
+   ===================================================================== */
+.landing {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 48px 24px 64px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.landing-header {
+  text-align: center;
+  margin-bottom: 44px;
+  animation: boot-in 0.5s ease both;
+}
+
+.landing-header h1 {
+  font-family: var(--font-pixel);
+  font-size: clamp(22px, 6vw, 44px);
+  line-height: 1.1;
+  letter-spacing: 2px;
+  text-shadow:
+    0 0 4px var(--phosphor),
+    0 0 18px rgba(43, 255, 136, 0.55),
+    0 0 40px rgba(43, 255, 136, 0.25);
+  margin-bottom: 16px;
+}
+
+.subtitle {
+  color: var(--phosphor-mid);
+  font-size: 18px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+}
+
+.subtitle::before {
+  content: '// ';
+  color: var(--phosphor-dim);
+}
+.subtitle::after {
+  content: ' //';
+  color: var(--phosphor-dim);
+}
+
+.section {
+  margin-bottom: 36px;
+  animation: boot-in 0.5s ease both;
+}
+.section:nth-of-type(1) {
+  animation-delay: 0.12s;
+}
+.section:nth-of-type(2) {
+  animation-delay: 0.24s;
+}
+
+.section h2 {
+  margin-bottom: 18px;
+  font-family: var(--font-pixel);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--phosphor);
+  text-shadow: var(--glow-sm);
+}
+
+.section h2::before {
+  content: '\25B8 ';
+  color: var(--amber);
+  text-shadow: var(--glow-amber);
+}
+
+/* --- Mode cards as a terminal selection list --- */
+.mode-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.mode-card {
+  background: var(--bg-panel);
+  padding: 18px 18px 18px 34px;
+  border: 1px solid var(--phosphor-dim);
+  cursor: pointer;
+  position: relative;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    box-shadow 0.15s;
+}
+
+.mode-card::before {
+  content: '>';
+  position: absolute;
+  left: 14px;
+  top: 18px;
+  color: var(--phosphor-dim);
+  font-weight: bold;
+  transition: color 0.15s;
+}
+
+.mode-card:hover {
+  background: var(--bg-panel-hi);
+  border-color: var(--phosphor-mid);
+}
+
+.mode-card.selected {
+  border-color: var(--phosphor);
+  background: var(--bg-panel-hi);
+  box-shadow:
+    var(--glow-md),
+    inset 0 0 20px rgba(43, 255, 136, 0.06);
+}
+
+.mode-card.selected::before {
+  content: '\25B6';
+  color: var(--amber);
+  text-shadow: var(--glow-amber);
+  animation: blink 1.1s steps(1) infinite;
+}
+
+.mode-card h3 {
+  margin-bottom: 8px;
+  font-size: 22px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.mode-card p {
+  color: var(--phosphor-mid);
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+/* --- Setup / actions --- */
+.setup-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.btn {
+  padding: 12px 34px;
+  background: transparent;
+  border: 1px solid var(--phosphor);
+  color: var(--phosphor);
+  cursor: pointer;
+  font-family: var(--font-term);
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-shadow: var(--glow-sm);
+  transition:
+    background 0.12s,
+    color 0.12s,
+    box-shadow 0.12s;
+}
+
+.btn::before {
+  content: '[ ';
+  color: var(--phosphor-dim);
+}
+.btn::after {
+  content: ' ]';
+  color: var(--phosphor-dim);
+}
+
+.btn:hover {
+  background: var(--phosphor);
+  color: var(--bg);
+  text-shadow: none;
+  box-shadow: var(--glow-md);
+}
+.btn:hover::before,
+.btn:hover::after {
+  color: var(--bg);
+}
+
+.btn-secondary {
+  border-color: var(--phosphor-mid);
+  color: var(--phosphor-mid);
+}
+.btn-secondary:hover {
+  background: var(--phosphor-mid);
+  color: var(--bg);
+}
+
+.divider {
+  color: var(--phosphor-mid);
+  letter-spacing: 3px;
+  font-size: 18px;
+  text-shadow: none; /* crisp — small dim text + glow reads blurry */
+}
+
+.join-form {
+  display: flex;
+  gap: 10px;
+}
+
+.join-form input {
+  padding: 12px 16px;
+  background: var(--bg-panel-hi); /* faint phosphor tint, not stark black */
+  border: 1px solid var(--phosphor); /* bright border, matching the buttons */
+  color: var(--phosphor);
+  font-family: var(--font-term);
+  font-size: 22px;
+  letter-spacing: 6px;
+  text-align: center;
+  text-transform: uppercase;
+  width: 260px;
+  text-shadow: var(--glow-sm);
+}
+
+.join-form input::placeholder {
+  color: var(--phosphor-mid);
+  letter-spacing: 1px;
+  text-transform: none;
+  text-shadow: none; /* crisp placeholder, fully legible */
+  opacity: 1;
+}
+
+.join-form input:focus {
+  outline: none;
+  border-color: var(--phosphor);
+  box-shadow: var(--glow-md);
+}
+
+.code-display {
+  text-align: center;
+  margin-top: 28px;
+}
+
+.code-display p {
+  margin-bottom: 12px;
+  color: var(--phosphor-mid);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.code {
+  font-size: 40px;
+  letter-spacing: 14px;
+  border: 1px solid var(--phosphor);
+  padding: 12px 26px 12px 40px;
+  display: inline-block;
+  font-weight: bold;
+  background: var(--bg-panel-hi);
+  box-shadow: var(--glow-md);
+  text-shadow: var(--glow-md);
+}
+
+/* --- Rules disclosure --- */
+.rules {
+  margin-top: 36px;
+  animation: boot-in 0.5s ease 0.36s both;
+}
+
+.rules summary {
+  cursor: pointer;
+  font-family: var(--font-pixel);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--phosphor);
+  list-style: none;
+}
+.rules summary::-webkit-details-marker {
+  display: none;
+}
+.rules summary::before {
+  content: '[+] ';
+  color: var(--amber);
+}
+.rules[open] summary::before {
+  content: '[-] ';
+}
+
+.rules-content {
+  margin-top: 18px;
+  padding: 18px;
+  background: var(--bg-panel);
+  border: 1px solid var(--phosphor-dim);
+  border-left: 3px solid var(--phosphor);
+  font-size: 18px;
+}
+
+.rules-content h3 {
+  margin: 14px 0 6px;
+  color: var(--phosphor);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 19px;
+}
+.rules-content h3::before {
+  content: '\2592 ';
+  color: var(--phosphor-dim);
+}
+
+.rules-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0;
+}
+
+.rules-content th,
+.rules-content td {
+  padding: 6px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--phosphor-faint);
+}
+
+.rules-content th {
+  color: var(--amber);
+  text-transform: uppercase;
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
+/* =====================================================================
+   LOADING
+   ===================================================================== */
+.loading {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 10, 5, 0.94);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+}
+
+.loading p {
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+.loading p::after {
+  content: '_';
+  animation: blink 1s steps(1) infinite;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--phosphor-dim);
+  border-top-color: var(--phosphor);
+  border-radius: 0;
+  animation: spin 0.8s steps(8) infinite;
+  margin-bottom: 18px;
+  box-shadow: var(--glow-sm);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* =====================================================================
+   GAMEPLAY POLISH
+   ===================================================================== */
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-2px);
+  }
+  75% {
+    transform: translateX(2px);
+  }
+}
+
+.shake {
+  animation: shake 0.3s ease;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.timer.urgent {
+  color: var(--alert);
+  text-shadow:
+    0 0 2px var(--alert),
+    0 0 12px rgba(255, 59, 48, 0.6);
+  animation: pulse 0.5s ease infinite;
+}
+
+.board-container:hover canvas {
+  border-color: var(--phosphor);
+  box-shadow:
+    inset 0 0 40px rgba(43, 255, 136, 0.1),
+    0 0 18px rgba(43, 255, 136, 0.3);
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  .cursor::after,
+  .mode-card.selected::before,
+  .waiting-content h2::after,
+  .loading p::after,
+  .timer.urgent,
+  .landing-header,
+  .section,
+  .rules {
+    animation: none !important;
+  }
+}

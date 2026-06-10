@@ -21,6 +21,7 @@ info() { printf '%s\n' "${BLUE}→ $*${RESET}"; }
 usage() {
   cat <<'USAGE'
 Usage:
+  scripts/tunnel-setup.sh setup [zrok|ngrok]      # guided, interactive — start here
   scripts/tunnel-setup.sh doctor
   scripts/tunnel-setup.sh install zrok [--scope project|user] [--version 2.0.4]
   scripts/tunnel-setup.sh uninstall zrok [--scope project|user]
@@ -317,10 +318,14 @@ ensure_build() {
 run_provider() {
   local provider="$1" tool server_pid
   tool="$(tool_path "$provider")" || {
-    err "$provider CLI not found. Run: scripts/tunnel-setup.sh install $provider"
+    err "$provider CLI not found. Run: scripts/tunnel-setup.sh install $provider  (or: scripts/tunnel-setup.sh setup)"
     exit 1
   }
 
+  preflight_provider "$provider" "$tool"
+  if port_in_use "$PORT"; then
+    warn "Port $PORT is already in use; the local server may fail to start."
+  fi
   ensure_build
   cd "$ROOT_DIR"
   info "Starting single-origin Battleship server on http://localhost:$PORT"
@@ -341,15 +346,236 @@ run_provider() {
   esac
 }
 
-doctor() {
-  info "Node: $(node --version 2>/dev/null || echo missing)"
-  if has_cmd pnpm; then
-    info "pnpm: $(command -v pnpm)"
+port_in_use() {
+  local port="$1"
+  if has_cmd lsof; then
+    lsof -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1
   else
-    info "pnpm: missing"
+    if (exec 3<>"/dev/tcp/127.0.0.1/$port") >/dev/null 2>&1; then
+      exec 3>&- 3<&- 2>/dev/null || true
+      return 0
+    fi
+    return 1
   fi
-  info "zrok2: $(zrok2 version 2>/dev/null || "$ROOT_DIR/.tools/bin/zrok2" version 2>/dev/null || echo missing)"
-  info "ngrok: $(ngrok version 2>/dev/null || echo missing)"
+}
+
+zrok_version_str() {
+  local t out
+  t="$(tool_path zrok 2>/dev/null)" || return 1
+  out="$("$t" version 2>/dev/null | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || true)"
+  printf '%s' "${out:-unknown version}"
+}
+
+# 0 = enabled, 1 = installed but not enabled, 2 = not installed
+zrok_enabled() {
+  local t
+  t="$(tool_path zrok 2>/dev/null)" || return 2
+  if "$t" status 2>&1 | grep -qi "enable command"; then
+    return 1
+  fi
+  return 0
+}
+
+# 0 = authtoken present, 1 = installed but no token found, 2 = not installed
+ngrok_authed() {
+  local t out cfg f
+  t="$(tool_path ngrok 2>/dev/null)" || return 2
+  out="$("$t" config check 2>&1 || true)"
+  cfg="$(printf '%s\n' "$out" | sed -n 's/.*[Aa]t //p' | tr -d '\r' | head -n1)"
+  for f in "$cfg" \
+    "$HOME/Library/Application Support/ngrok/ngrok.yml" \
+    "$HOME/.config/ngrok/ngrok.yml" \
+    "$HOME/.ngrok2/ngrok.yml"; do
+    [[ -n "$f" && -f "$f" ]] && grep -qi "authtoken" "$f" && return 0
+  done
+  return 1
+}
+
+preflight_provider() {
+  local provider="$1" tool="$2"
+  case "$provider" in
+    zrok)
+      if ! zrok_enabled; then
+        err "zrok is installed, but your environment isn't enabled yet."
+        info "Enable it once with a free token:"
+        info "  1. Sign up at https://zrok.io — the web console shows your token and the exact enable command"
+        info "  2. Run: $tool enable <your-token>"
+        info "Or let the guided setup walk you through it: pnpm tunnel:setup"
+        exit 1
+      fi
+      ;;
+    ngrok)
+      if ! ngrok_authed; then
+        warn "Couldn't confirm an ngrok authtoken. If the tunnel fails to start:"
+        info "  1. Sign up at https://dashboard.ngrok.com/signup"
+        info "  2. Copy your token: https://dashboard.ngrok.com/get-started/your-authtoken"
+        info "  3. Run: ngrok config add-authtoken <your-token>"
+        info "Or run the guided setup: pnpm tunnel:setup"
+      fi
+      ;;
+  esac
+}
+
+doctor() {
+  local v
+  printf '%s\n\n' "${BOLD}Battleship tunnel doctor${RESET}"
+
+  printf '%s\n' "${BOLD}Core${RESET}"
+  has_cmd node && ok "Node $(node --version 2>/dev/null)" || err "Node missing — install Node >= 26"
+  has_cmd pnpm && ok "pnpm $(pnpm --version 2>/dev/null) ($(command -v pnpm))" || err "pnpm missing — run: corepack enable"
+  if [[ -d "$ROOT_DIR/dist" ]]; then
+    ok "Game is built (dist/ present)"
+  else
+    warn "Game not built yet — it will build automatically on first run, or run: pnpm build"
+  fi
+  if port_in_use "$PORT"; then
+    warn "Port $PORT is busy — close the other server, or set PORT=<number>"
+  else
+    ok "Port $PORT is free"
+  fi
+  echo
+
+  printf '%s\n' "${BOLD}zrok${RESET}  ${BLUE}(recommended — free, installs just for this project)${RESET}"
+  if v="$(zrok_version_str)"; then
+    ok "Installed ($v)"
+    if zrok_enabled; then
+      ok "Account enabled — ready to host"
+    else
+      warn "Not enabled yet — run: pnpm tunnel:setup   (or: $(tool_path zrok) enable <token>)"
+    fi
+  else
+    warn "Not installed — run: pnpm tunnel:setup   (or: pnpm tunnel:install:zrok)"
+  fi
+  echo
+
+  printf '%s\n' "${BOLD}ngrok${RESET}  ${BLUE}(installs on your whole computer)${RESET}"
+  if has_cmd ngrok; then
+    ok "Installed ($(ngrok version 2>/dev/null | head -n1))"
+    if ngrok_authed; then
+      ok "Authtoken set — ready to host"
+    else
+      warn "No authtoken found — run: pnpm tunnel:setup   (or: ngrok config add-authtoken <token>)"
+    fi
+  else
+    warn "Not installed — run: pnpm tunnel:setup   (or: pnpm tunnel:install:ngrok)"
+  fi
+  echo
+
+  printf '%s\n' "${BOLD}Next step${RESET}"
+  info "New here?  ${BOLD}pnpm tunnel:setup${RESET}  walks you through everything, one question at a time."
+  info "Ready?     ${BOLD}pnpm tunnel:zrok${RESET} (or pnpm tunnel:ngrok) starts your public link."
+}
+
+choose_provider() {
+  if [[ "${TUNNEL_ASSUME_YES:-0}" == "1" || "${ASSUME_YES:-0}" == "1" ]]; then
+    printf 'zrok\n'
+    return 0
+  fi
+  {
+    printf '%s\n' "${BOLD}Which tunnel do you want to use?${RESET}"
+    printf '  1) zrok  — free, open-source, installs just for this project (recommended)\n'
+    printf '  2) ngrok — popular, installs on your whole computer\n'
+    printf 'Choose 1 or 2 [1]: '
+  } >&2
+  local ans
+  read -r ans || ans=""
+  case "$ans" in
+    2|ngrok) printf 'ngrok\n' ;;
+    *) printf 'zrok\n' ;;
+  esac
+}
+
+setup() {
+  local provider="${1:-}" tool token
+  printf '%s\n' "${BOLD}Battleship — host setup${RESET}"
+  info "This gets you one public link to share so a friend can join your game."
+  echo
+
+  if [[ -z "$provider" ]]; then
+    provider="$(choose_provider)"
+  fi
+  info "Using ${BOLD}$provider${RESET}."
+  echo
+
+  # Step 1 — make sure the tool is installed
+  if ! tool_path "$provider" >/dev/null 2>&1; then
+    warn "$provider isn't installed yet."
+    if confirm "Install $provider now?"; then
+      case "$provider" in
+        zrok) install_zrok "$DEFAULT_SCOPE" "$ZROK_VERSION" ;;
+        ngrok) install_ngrok "user" ;;
+      esac
+    else
+      err "Can't continue without $provider. Re-run pnpm tunnel:setup when you're ready."
+      exit 1
+    fi
+  else
+    ok "$provider is installed."
+  fi
+  echo
+
+  # Step 2 — make sure it's signed in
+  tool="$(tool_path "$provider")"
+  case "$provider" in
+    zrok)
+      if zrok_enabled; then
+        ok "Your zrok environment is already enabled."
+      else
+        warn "zrok needs a free account token — this is a one-time step."
+        info "1. Sign up at https://zrok.io"
+        info "2. The web console shows your token and the exact enable command"
+        if [[ "${TUNNEL_ASSUME_YES:-0}" == "1" || "${ASSUME_YES:-0}" == "1" ]]; then
+          warn "Non-interactive mode — skipping token entry. Run later: $tool enable <token>"
+        else
+          printf 'Paste your zrok token (or press Enter to skip): '
+          read -r token || token=""
+          if [[ -n "$token" ]]; then
+            "$tool" enable "$token"
+          else
+            warn "Skipped. Run later: $tool enable <token>"
+          fi
+        fi
+      fi
+      ;;
+    ngrok)
+      if ngrok_authed; then
+        ok "ngrok already has an authtoken."
+      else
+        warn "ngrok needs an authtoken — this is a one-time step."
+        info "1. Sign up at https://dashboard.ngrok.com/signup"
+        info "2. Copy your token: https://dashboard.ngrok.com/get-started/your-authtoken"
+        if [[ "${TUNNEL_ASSUME_YES:-0}" == "1" || "${ASSUME_YES:-0}" == "1" ]]; then
+          warn "Non-interactive mode — skipping token entry. Run later: ngrok config add-authtoken <token>"
+        else
+          printf 'Paste your ngrok authtoken (or press Enter to skip): '
+          read -r token || token=""
+          if [[ -n "$token" ]]; then
+            "$tool" config add-authtoken "$token"
+          else
+            warn "Skipped. Run later: ngrok config add-authtoken <token>"
+          fi
+        fi
+      fi
+      ;;
+  esac
+  echo
+
+  # Step 3 — make sure the game is built
+  if [[ -d "$ROOT_DIR/dist" ]]; then
+    ok "Game is already built."
+  elif confirm "Build the game now (needed before hosting)?"; then
+    ( cd "$ROOT_DIR" && pnpm build )
+  fi
+  echo
+
+  # Step 4 — recap and offer to launch
+  doctor
+  echo
+  if confirm "Start hosting now (opens your public link)?"; then
+    run_provider "$provider"
+  else
+    info "When you're ready: ${BOLD}pnpm tunnel:$provider${RESET}"
+  fi
 }
 
 COMMAND="${1:-}"
@@ -372,6 +598,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$COMMAND:$PROVIDER" in
+  setup:|setup:zrok|setup:ngrok) setup "$PROVIDER" ;;
   doctor:) doctor ;;
   install:zrok) install_zrok "$SCOPE" "$ZROK_VERSION" ;;
   uninstall:zrok) uninstall_zrok "$SCOPE" "$ZROK_VERSION" ;;
