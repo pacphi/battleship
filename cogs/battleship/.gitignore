@@ -1,0 +1,4 @@
+target/
+src/assets.rs
+.agentic-qe/
+.claude-flow/
