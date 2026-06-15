@@ -43,7 +43,7 @@
     "fix": "pnpm run lint:fix && pnpm run format"
   },
   "dependencies": {
-    "astro": "^6.4.5",
+    "astro": "^6.4.6",
     "ws": "^8.21.0"
   },
   "devDependencies": {
