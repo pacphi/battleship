@@ -49,13 +49,13 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
     "@eslint/js": "^10.0.1",
-    "eslint": "^10.4.1",
-    "globals": "^17.6.0",
+    "eslint": "^10.7.0",
+    "globals": "^17.7.0",
     "jsdom": "^29.1.1",
-    "markdownlint-cli2": "^0.22.1",
-    "prettier": "^3.8.4",
+    "markdownlint-cli2": "^0.23.0",
+    "prettier": "^3.9.5",
     "prettier-plugin-astro": "^0.14.1",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.8"
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
   }
 }
