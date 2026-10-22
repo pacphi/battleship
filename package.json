@@ -6,7 +6,7 @@
     "node": ">=26",
     "pnpm": ">=11"
   },
-  "packageManager": "pnpm@11.5.3",
+  "packageManager": "pnpm@11.28.6",
   "approvedBuilds": [
     "esbuild",
     "sharp"
