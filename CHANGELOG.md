@@ -18,6 +18,7 @@ All notable changes to this project will be documented in this file.
 
 - Migrated from npm to pnpm (see `docs/MAINTAINERS.md` for local setup)
 - Added `.gitignore` to exclude build artifacts, dependencies, and IDE files
+- Dependencies refreshed within their current majors to clear 86 of 98 `pnpm audit` findings; the rest need the Astro 7, eslint/minimatch 11 and markdownlint-cli2 0.24 upgrades
 
 ---
 
