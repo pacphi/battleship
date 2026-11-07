@@ -1,3 +1,14 @@
 allowBuilds:
   esbuild: true
   sharp: true
+
+# Scoped overrides for advisories in packages markdownlint-cli2 0.22.x pins exactly.
+# Each stays inside the pinned package's current major. Remove them when markdownlint-cli2
+# moves to 0.24+ (a 0.x minor, so a deliberate upgrade), which pins fixed versions itself.
+overrides:
+  # GHSA-6v5v-wf23-fmfq, GHSA-253c-mchw-3w2r, GHSA-r7fv-28h4-cvq7, GHSA-gfr2-rv44-r23c, GHSA-vfgh-jcmw-g37q
+  markdownlint-cli2>markdown-it: ^14.3.3
+  # GHSA-h67p-54hq-rp68, GHSA-52cp-r559-cp3m, GHSA-5p4m-2wfm-xmqj, GHSA-2883-xcg3-v3hh
+  markdownlint-cli2>js-yaml: ^4.3.2
+  # GHSA-7w5x-hrqm-74c2, GHSA-r4xh-jqrq-34v2
+  markdownlint-cli2>smol-toml: ^1.9.1
