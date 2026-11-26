@@ -12,3 +12,10 @@ overrides:
   markdownlint-cli2>js-yaml: ^4.3.2
   # GHSA-7w5x-hrqm-74c2, GHSA-r4xh-jqrq-34v2
   markdownlint-cli2>smol-toml: ^1.9.1
+  # GHSA-238p-pmpm-9mq7: katex 0.16.47 (via markdownlint-cli2 > markdownlint > micromark-extension-math,
+  # dev only) is fixed in 0.18.2, a 0.x minor. Markdown linting never renders math.
+  katex@0.16.47: 0.18.2
+  # GHSA-g7r4-m6w7-qqqr: esbuild 0.27.7 (via vite 7 and astro 6) is fixed in 0.28.1, a 0.x minor.
+  esbuild@0.27.7: 0.28.1
+  # GHSA-g3hv-75wg-m249: minimatch 10.2.6 (via @eslint/config-array) is fixed in 11.0.1, a major.
+  minimatch@10.2.6: 11.0.1
